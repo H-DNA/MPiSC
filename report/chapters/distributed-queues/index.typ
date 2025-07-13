@@ -142,7 +142,7 @@ Placement-wise, all queue data in this SPSC is hosted on the enqueuer while the 
   #pseudocode-list(line-numbering: none)[
     + *Shared variables*
       + `First`: `remote<uint64_t>`
-        + The index of the last undequeued entry.
+        + The index of the first undequeued entry.
         + Hosted at the dequeuer.
       + `Last`: `remote<uint64_t>`
         + The index of the last unenqueued entry.
