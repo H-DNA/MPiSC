@@ -145,7 +145,7 @@ Placement-wise, all queue data in this SPSC is hosted on the enqueuer while the 
         + The index of the first undequeued entry.
         + Hosted at the dequeuer.
       + `Last`: `remote<uint64_t>`
-        + The index of the last unenqueued entry.
+        + The index of the first unenqueued entry.
         + Hosted at the dequeuer.
       + `Data`: `remote<data_t*>`
         + An array of `data_t` of some known capacity.
