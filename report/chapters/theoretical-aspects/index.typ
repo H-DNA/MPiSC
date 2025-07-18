@@ -630,7 +630,7 @@ We immediately obtain the following result.
 
   If $H$ contains some pending method calls, we can just wait for them to complete (because the algorithm is wait-free, which we will prove later). Therefore, now we consider all $H$ to contain only completed method calls. So, we know that if a dequeue or an enqueue in $H$ is matched or not.
 
-  If there are some unmatched enqueues, we can append dequeues sequentially to the end of $H$ until there's no unmatched enqueues. Consider one such $H'$.
+  If there are some unmatched enqueues, we can append dequeues sequentially to the end of $H$ until there's no unmatched enqueue. Consider one such $H'$.
 
   We already have a strict partial order $->$#sub($H'$) on $H'$.
 
@@ -1020,7 +1020,7 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
 
   If $H$ contains some pending method calls, we can just wait for them to complete (because the algorithm is wait-free, which we will prove later). Therefore, now we consider all $H$ to contain only completed method calls. So, we know that if a dequeue or an enqueue in $H$ is matched or not.
 
-  If there are some unmatched enqueues, we can append dequeues sequentially to the end of $H$ until there's no unmatched enqueues. Consider one such $H'$.
+  If there are some unmatched enqueues, we can append dequeues sequentially to the end of $H$ until there's no unmatched enqueue. Consider one such $H'$.
 
   We already have a strict partial order $->$#sub($H'$) on $H'$.
 
