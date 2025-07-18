@@ -880,7 +880,7 @@ Both `CAS`es target some slot in the `Slots` array.
 
 #theorem(
   name: "ABA safety",
-)[Assume that the 64-bit distributed counter never overflows, Slot-queue is ABA-safe.] <aba-safe-slotqueue-theorem>
+)[Assume that the 64-bit distributed counter never overflows, Slotqueue is ABA-safe.] <aba-safe-slotqueue-theorem>
 
 #proof[
   This follows from @slotqueue-aba-safe-enqueue-theorem and @slotqueue-aba-safe-dequeue-theorem.
@@ -1016,7 +1016,7 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
 )[Slotqueue is linearizable.] <slotqueue-spsc-linearizability-theorem>
 
 #proof[
-  Suppose some history $H$ produced from the Slot-queueu algorithm.
+  Suppose some history $H$ produced from the Slotqueue algorithm.
 
   If $H$ contains some pending method calls, we can just wait for them to complete (because the algorithm is wait-free, which we will prove later). Therefore, now we consider all $H$ to contain only completed method calls. So, we know that if a dequeue or an enqueue in $H$ is matched or not.
 
