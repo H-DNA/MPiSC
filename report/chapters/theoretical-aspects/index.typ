@@ -680,7 +680,7 @@ We immediately obtain the following result.
     - $(1)$ applies, then $e_1$ precedes $e_2$, by @ltqueue-enqueue-enqueue-theorem, $d_1$ must precede $d_2$, thus $d_1 arrow.double$#sub($H'$)$d_2$.
     Therefore, if $e_1 arrow.double$#sub($H'$)$e_2$ then $d_1 arrow.double$#sub($H'$)$d_2$.
   - An enqueue can only be matched by a later dequeue: Suppose there is an enqueue $e$ matched by $d$. By $(2)$, obviously $e =>$#sub($H'$)$d$.
-  - If the queue is empty, a dequeue return `false`. Suppose a dequeue $d$ such that any $e arrow.double$#sub($H'$)$d$ is all matched by some $d'$ and $d' arrow.double$#sub($H'$)$d$, we will prove that $d$ is unmatched. By @ltqueue-matching-dequeue-enqueue-theorem, $d$ can only match an enqueue $e_0$ that precedes or overlaps with $d$.
+  - If the queue is empty, a dequeue returns `false`. Suppose a dequeue $d$ such that any $e arrow.double$#sub($H'$)$d$ is all matched by some $d'$ and $d' arrow.double$#sub($H'$)$d$, we will prove that $d$ is unmatched. By @ltqueue-matching-dequeue-enqueue-theorem, $d$ can only match an enqueue $e_0$ that precedes or overlaps with $d$.
     - If $e_0$ precedes $d$, by our assumption, it's already matched by another dequeue.
     - If $e_0$ overlaps with $d$, by our assumption, $d arrow.double$#sub($H'$)$e_0$ because if $e_0 arrow.double$#sub($H'$)$d$, $e_0$ is already matched by another $d'$. Then, we can only obtain this because $(4)$ applies, but then $d$ does not match $e_0$.
     Therefore, $d$ is unmatched.
@@ -1069,7 +1069,7 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
     - $(1)$ applies, then $e_1$ precedes $e_2$, by @slotqueue-enqueue-enqueue-theorem, $d_1$ must precede $d_2$, thus $d_1 arrow.double$#sub($H'$)$d_2$.
     Therefore, if $e_1 arrow.double$#sub($H'$)$e_2$ then $d_1 arrow.double$#sub($H'$)$d_2$.
   - An enqueue can only be matched by a later dequeue: Suppose there is an enqueue $e$ matched by $d$. By $(2)$, obviously $e =>$#sub($H'$)$d$.
-  - If the queue is empty, a dequeue return `false`. Suppose a dequeue $d$ such that any $e arrow.double$#sub($H'$)$d$ is all matched by some $d'$ and $d' arrow.double$#sub($H'$)$d$, we will prove that $d$ is unmatched. By @slotqueue-matching-dequeue-enqueue-theorem, $d$ can only match an enqueue $e_0$ that precedes or overlaps with $d$.
+  - If the queue is empty, a dequeue returns `false`. Suppose a dequeue $d$ such that any $e arrow.double$#sub($H'$)$d$ is all matched by some $d'$ and $d' arrow.double$#sub($H'$)$d$, we will prove that $d$ is unmatched. By @slotqueue-matching-dequeue-enqueue-theorem, $d$ can only match an enqueue $e_0$ that precedes or overlaps with $d$.
     - If $e_0$ precedes $d$, by our assumption, it's already matched by another dequeue.
     - If $e_0$ overlaps with $d$, by our assumption, $d arrow.double$#sub($H'$)$e_0$ because if $e_0 arrow.double$#sub($H'$)$d$, $e_0$ is already matched by another $d'$. Then, we can only obtain this because $(4)$ applies, but then $d$ does not match $e_0$.
     Therefore, $d$ is unmatched.
