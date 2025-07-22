@@ -58,7 +58,7 @@ for pattern in patterns:
         color=sq_color,
     )
 
-    ax.set_xlabel("Number of Nodes", fontsize=12)
+    ax.set_xlabel("Number of Nodes (x8 cores)", fontsize=12)
     ax.set_ylabel("Latency (us)", fontsize=12)
     ax.set_yscale("log")
     ax.set_xscale("log")
