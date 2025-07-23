@@ -59,10 +59,6 @@ The characteristics of these MPSC queue wrappers are summarized in @summary-of-d
     [Safe memory #linebreak() reclamation],
     [No dynamic memory allocation],
     [No dynamic memory allocation],
-
-    [Number of element],
-    [Depending on the underlying SPSC],
-    [Depending on the underlying SPSC],
   ),
 ) <summary-of-distributed-mpscs>
 

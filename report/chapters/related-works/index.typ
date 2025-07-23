@@ -41,8 +41,6 @@ There exists numerous research into the design of non-blocking shared memory MPM
     [Wait-free],
     [Wait-free],
     [Wait-free],
-
-    [Number of elements], [Unbounded], [Unbounded], [Bounded], [Unbounded],
   ),
 ) <summary-of-MPSCs>
 
@@ -173,7 +171,6 @@ The only paper we have found so far that either mentions directly or indirectly 
     [Progress guarantee of #linebreak() enqueue], [Wait-free],
     [ABA solution], [No compare-and-swap usage],
     [Safe memory reclamation], [Custom scheme],
-    [Number of elements], [Bounded],
   ),
 ) <summary-of-dMPSCs>
 
