@@ -344,27 +344,11 @@ Note that we have described a very specific and simple way to organize the tree 
       + The entry at index $i$ corresponds to the `Min_timestamp` distributed variable at the enqueuer with an order of $i$.
 ]
 
-Similar to the fact that each process in our program is assigned a rank, each enqueuer process in our program is assigned an *order*. The following procedure computes an enqueuer's order based on its rank:
-
-#figure(
-  kind: "algorithm",
-  supplement: [Procedure],
-  pseudocode-list(
-    line-numbering: i => i,
-    booktabs: true,
-    numbered-title: [`uint32_t enqueuerOrder(uint32_t enqueuer_rank)`],
-  )[
-    + #line-label(<line-ltqueue-enqueuer-order>) *return* `enqueuer_rank > Dequeuer_rank ? enqueuer_rank - 1 : enqueuer_rank`
-  ],
-) <ltqueue-enqueuer-order>
-
-This procedure is rather straightforward: Each enqueuer is assigned an order in the range `[0, size - 2]`, with `size` being the number of processes and the total ordering among the enqueuers based on their ranks is the same as the total ordering among the enqueuers based on their orders.
-
 #columns(2)[
   #pseudocode-list(line-numbering: none)[
     + *Enqueuer-local variables*
-      + `Enqueuer_count`: `uint64_t`
-        + The number of enqueuers.
+      + `Process_count`: `uint64_t`
+        + The number of processes.
       + `Self_rank`: `uint32_t`
         + The rank of the current enqueuer process.
       + `Min_timestamp`: `remote<timestamp_t>`
@@ -376,9 +360,9 @@ This procedure is rather straightforward: Each enqueuer is assigned an order in 
 
   #pseudocode-list(line-numbering: none)[
     + *Dequeuer-local variables*
-      + `Enqueuer_count`: `uint64_t`
-        + The number of enqueuers.
-      + `Spscs`: *array* of `spsc_t` with `Enqueuer_count` entries.
+      + `Process_count`: `uint64_t`
+        + The number of processes.
+      + `Spscs`: *array* of `spsc_t` with `Process_count` entries.
         + The entry at index $i$ corresponds to the `Spsc` at the enqueuer with an order of $i$.
   ]
 ]
@@ -388,7 +372,7 @@ Initially, the enqueuers and the dequeuer are initialized as follows:
 #columns(2)[
   #pseudocode-list(line-numbering: none)[
     + *Enqueuer initialization*
-      + Initialize `Enqueuer_count`, `Self_rank` and `Dequeuer_rank`.
+      + Initialize `Process_count`, `Self_rank` and `Dequeuer_rank`.
       + Initialize `Spsc` to the initial state.
       + Initialize `Min_timestamp` to `timestamp_t {MAX_TIMESTAMP, 0}`.
   ]
@@ -397,9 +381,9 @@ Initially, the enqueuers and the dequeuer are initialized as follows:
 
   #pseudocode-list(line-numbering: none)[
     + *Dequeuer initialization*
-      + Initialize `Enqueuer_count`, `Self_rank` and `Dequeuer_rank`.
+      + Initialize `Process_count`, `Self_rank` and `Dequeuer_rank`.
       + Initialize `Counter` to `0`.
-      + Initialize `Tree_size` to `Enqueuer_count * 2`.
+      + Initialize `Tree_size` to `Process_count * 2`.
       + Initialize `Nodes` to an array with `Tree_size` entries. Each entry is initialized to `node_t {DUMMY_RANK}`.
       + Initialize `Spscs`, synchronizing each entry with the corresponding enqueuer.
       + Initialize `Timestamps`, synchronizing each entry with the corresponding enqueuer.
@@ -455,7 +439,7 @@ Similarly, `children` returns all indices of the child tree nodes given the node
     booktabs: true,
     numbered-title: [`uint32_t leafNodeIndex(uint32_t enqueuer_rank)`],
   )[
-    + *return* `Tree_size + enqueuerOrder(enqueuer_rank)                         `
+    + *return* `Tree_size + enqueuer_rank                                `
   ],
 ) <ltqueue-leaf-node-index>
 
@@ -553,7 +537,7 @@ The `refreshTimestamp`#sub(`e`) procedure is responsible for updating the `Min_t
       + #line-label(<line-ltqueue-e-refresh-node-extract-child-rank>) `{child_rank, child_version} = child_node`
       + #line-label(<line-ltqueue-e-refresh-node-check-dummy>) *if* `(child_rank == DUMMY_RANK)` *continue*
       + #line-label(<line-ltqueue-e-refresh-node-init-child-timestamp>) `child_timestamp = timestamp_t {}`
-      + #line-label(<line-ltqueue-e-refresh-node-read-timestamp>) `aread_sync(Timestamps[enqueuerOrder(child_rank)], &child_timestamp)`
+      + #line-label(<line-ltqueue-e-refresh-node-read-timestamp>) `aread_sync(Timestamps[child_rank], &child_timestamp)`
       + #line-label(<line-ltqueue-e-refresh-node-check-timestamp>) *if* `(child_timestamp < min_timestamp)`
         + #line-label(<line-ltqueue-e-refresh-node-update-min-timestamp>) `min_timestamp = child_timestamp`
         + #line-label(<line-ltqueue-e-refresh-node-update-min-rank>) `min_rank = child_rank`
@@ -603,7 +587,7 @@ The followings are the dequeuer procedures.
     + #line-label(<line-ltqueue-dequeue-extract-rank>) `{rank, version} = root_node.rank`
     + #line-label(<line-ltqueue-dequeue-check-empty>) *if* `(rank == DUMMY_RANK)` *return* `false`
     + #line-label(<line-ltqueue-dequeue-init-output>) `output_with_timestamp = (data_t {}, timestamp_t {})`
-    + #line-label(<line-ltqueue-dequeue-spsc>) *if* `(!spsc_dequeue(&Spscs[enqueuerOrder(rank)]),
+    + #line-label(<line-ltqueue-dequeue-spsc>) *if* `(!spsc_dequeue(&Spscs[rank]),
     &output_with_timestamp))`
       + #line-label(<line-ltqueue-dequeue-fail>) *return* `false`
     + #line-label(<line-ltqueue-dequeue-extract-data>) `*output = output_with_timestamp.data`
@@ -645,7 +629,7 @@ The `propagate`#sub(`d`) procedure is similar to `propagate`#sub(`e`), with appr
     booktabs: true,
     numbered-title: [`bool refreshTimestamp`#sub(`d`)`(uint32_t enqueuer_rank)`],
   )[
-    + #line-label(<line-ltqueue-d-refresh-timestamp-get-order>) `enqueuer_order = enqueuerOrder(enqueuer_rank)`
+    + #line-label(<line-ltqueue-d-refresh-timestamp-get-order>) `enqueuer_order = enqueuer_rank`
     + #line-label(<line-ltqueue-d-refresh-timestamp-init>) `min_timestamp = timestamp_t {}`
     + #line-label(<line-ltqueue-d-refresh-timestamp-read>) `aread_sync(Timestamps, enqueuer_order, &min_timestamp)`
     + #line-label(<line-ltqueue-d-refresh-timestamp-extract>) `{old-timestamp, old-version} = min_timestamp                                 `
@@ -683,7 +667,7 @@ The `refreshTimestamp`#sub(`d`) procedure is similar to `refreshTimestamp`#sub(`
       + #line-label(<line-ltqueue-d-refresh-node-extract-child-rank>) `{child_rank, child_version} = child_node`
       + #line-label(<line-ltqueue-d-refresh-node-check-dummy>) *if* `(child_rank == DUMMY_RANK)` *continue*
       + #line-label(<line-ltqueue-d-refresh-node-init-child-timestamp>) `child_timestamp = timestamp_t {}`
-      + #line-label(<line-ltqueue-d-refresh-node-read-timestamp>) `aread_sync(Timestamps[enqueuerOrder(child_rank)], &child_timestamp)`
+      + #line-label(<line-ltqueue-d-refresh-node-read-timestamp>) `aread_sync(Timestamps[child_rank], &child_timestamp)`
       + #line-label(<line-ltqueue-d-refresh-node-check-timestamp>) *if* `(child_timestamp < min_timestamp)`
         + #line-label(<line-ltqueue-d-refresh-node-update-min-timestamp>) `min_timestamp = child_timestamp`
         + #line-label(<line-ltqueue-d-refresh-node-update-min-rank>) `min_rank = child_rank`
@@ -708,7 +692,7 @@ The `refreshNode`#sub(`d`) procedure is similar to `refreshNode`#sub(`e`), with 
     + #line-label(<line-ltqueue-d-refresh-leaf-read>) `aread_sync(Nodes, leaf_node_index, &leaf_node)`
     + #line-label(<line-ltqueue-d-refresh-leaf-extract-rank>) `{old_rank, old_version} = leaf_node.rank`
     + #line-label(<line-ltqueue-d-refresh-leaf-init-timestamp>) `min_timestamp = timestamp_t {}`
-    + #line-label(<line-ltqueue-d-refresh-leaf-read-timestamp>) `aread_sync(Timestamps, enqueuerOrder(enqueuer_rank), &min_timestamp)`
+    + #line-label(<line-ltqueue-d-refresh-leaf-read-timestamp>) `aread_sync(Timestamps, enqueuer_rank, &min_timestamp)`
     + #line-label(<line-ltqueue-d-refresh-leaf-extract-timestamp>) `timestamp = min_timestamp.timestamp`
     + #line-label(<line-ltqueue-d-refresh-leaf-cas>) *return* `compare_and_swap_sync(Nodes, leaf_node_index,
 node_t {rank_t {old-rank, old-version}},
@@ -757,42 +741,12 @@ We first introduce the types and shared variables utilized in Slotqueue.
       + Hosted at the dequeuer.
 ]
 
-Similar to the idea of assigning an order to each enqueuer in dLTQueue, the following procedure computes an enqueuer's order based on its rank:
-
-#figure(
-  kind: "algorithm",
-  supplement: [Procedure],
-  pseudocode-list(
-    line-numbering: i => i,
-    booktabs: true,
-    numbered-title: [`uint64_t enqueuerOrder(uint64_t enqueuer_rank)`],
-  )[
-    + *return* `enqueuer_rank > Dequeuer_rank ? enqueuer_rank - 1 : enqueuer_rank`
-  ],
-) <slotqueue-enqueuer-order>
-
-Again, each enqueuer is assigned an order in the range `[0, size - 2]`, with `size` being the number of processes and the total ordering among the enqueuers based on their ranks is the same as the total ordering among the enqueuers based on their orders.
-
-Reversely, `enqueuerRank` computes an enqueuer's rank given its order.
-
-#figure(
-  kind: "algorithm",
-  supplement: [Procedure],
-  pseudocode-list(
-    line-numbering: i => i + 1,
-    booktabs: true,
-    numbered-title: [`uint64_t enqueuerRank(uint64_t enqueuer_order)`],
-  )[
-    + *return* `enqueuer_order >= Dequeuer_rank ? enqueuer_order + 1 : enqueuer_order                                                       `
-  ],
-) <slotqueue-enqueuer-rank>
-
 #columns(2)[
   #pseudocode-list(line-numbering: none)[
     + *Enqueuer-local variables*
       + `Dequeuer_rank`: `uint64_t`
         + The rank of the dequeuer.
-      + `Enqueuer_count`: `uint64_t`
+      + `Process_count`: `uint64_t`
         + The number of enqueuers.
       + `Self_rank`: `uint32_t`
         + The rank of the current enqueuer process.
@@ -806,9 +760,9 @@ Reversely, `enqueuerRank` computes an enqueuer's rank given its order.
     + *Dequeuer-local variables*
       + `Dequeuer_rank`: `uint64_t`
         + The rank of the dequeuer.
-      + `Enqueuer_count`: `uint64_t`
+      + `Process_count`: `uint64_t`
         + The number of enqueuers.
-      + `Spscs`: *array* of `spsc_t` with `Enqueuer_count` entries.
+      + `Spscs`: *array* of `spsc_t` with `Process_count` entries.
         + The entry at index $i$ corresponds to the `Spsc` at the enqueuer with an order of $i$.
   ]
 ]
@@ -819,7 +773,7 @@ Initially, the enqueuer and the dequeuer are initialized as follows.
   #pseudocode-list(line-numbering: none)[
     + *Enqueuer initialization*
       + Initialize `Dequeuer_rank`.
-      + Initialize `Enqueuer_count`.
+      + Initialize `Process_count`.
       + Initialize `Self_rank`.
       + Initialize the local `Spsc` to its initial state.
   ]
@@ -827,7 +781,7 @@ Initially, the enqueuer and the dequeuer are initialized as follows.
   #pseudocode-list(line-numbering: none)[
     + *Dequeuer initialization*
       + Initialize `Dequeuer_rank`.
-      + Initialize `Enqueuer_count`.
+      + Initialize `Process_count`.
       + Initialize `Counter` to 0.
       + Initialize the `Slots` array with size equal to the number of enqueuers and every entry is initialized to `MAX_TIMESTAMP`.
       + Initialize the `Spscs` array, the `i`-th entry corresponds to the `Spsc` variable of the enqueuer of order `i`.
@@ -917,8 +871,8 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
     booktabs: true,
     numbered-title: [`uint64_t readMinimumRank()`],
   )[
-    + #line-label(<line-slotqueue-read-min-rank-init-buffer>) `buffered_slots = timestamp_t[Enqueuer_count] {}                       `
-    + #line-label(<line-slotqueue-read-min-rank-scan1-loop>) *for* `index` *in* `0..Enqueuer_count`
+    + #line-label(<line-slotqueue-read-min-rank-init-buffer>) `buffered_slots = timestamp_t[Process_count] {}                       `
+    + #line-label(<line-slotqueue-read-min-rank-scan1-loop>) *for* `index` *in* `0..Process_count`
       + #line-label(<line-slotqueue-read-min-rank-scan1-read>) `aread_sync(Slots, index, &bufferred_slots[index])`
     + #line-label(<line-slotqueue-read-min-rank-check-empty>) *if* every entry in `bufferred_slots` is `MAX_TIMESTAMP`
       + #line-label(<line-slotqueue-read-min-rank-return-empty>) *return* `DUMMY_RANK`
@@ -929,7 +883,7 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
     + #line-label(<line-slotqueue-read-min-rank-check-loop>) *for* `index` *in* `0..rank`
       + #line-label(<line-slotqueue-read-min-rank-get-timestamp>) `timestamp = buffered_slots[index]`
       + #line-label(<line-slotqueue-read-min-rank-compare>) *if* `(min_timestamp < timestamp)`
-        + #line-label(<line-slotqueue-read-min-rank-update-rank>) `min_rank = enqueuerRank(index)`
+        + #line-label(<line-slotqueue-read-min-rank-update-rank>) `min_rank = index`
         + #line-label(<line-slotqueue-read-min-rank-update-timestamp>) `min_timestamp = timestamp`
     + #line-label(<line-slotqueue-read-min-rank-return>) *return* `min_rank`
   ],
@@ -945,7 +899,7 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
     booktabs: true,
     numbered-title: [`refreshDequeue(rank: int)` *returns* `bool`],
   )[
-    + #line-label(<line-slotqueue-refresh-dequeue-get-order>) `enqueuer_order = enqueuerOrder(rank)                                `
+    + #line-label(<line-slotqueue-refresh-dequeue-get-order>) `enqueuer_order = rank                                      `
     + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp>) `old_timestamp = timestamp_t {}`
     + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `aread_sync(&Slots, enqueuer_order, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-dequeue-init-front>) `front = (data_t {}, timestamp_t {})`
