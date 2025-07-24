@@ -28,7 +28,7 @@ There exists numerous research into the design of non-blocking shared memory MPM
     [Custom scheme],
     [Incorrect custom scheme (\*)],
     [Custom scheme],
-    [Custom scheme],
+    [Insufficient custom scheme],
 
     [Progress guarantee of dequeue],
     [Wait-free],
@@ -140,15 +140,13 @@ To enqueue, each enqueuer would FAA the Tail to reserve a slot. If the slot isn'
 
 To dequeue, the dequeuer would start from the Head index of the first segment, scanning until it finds the first non-`HANDLED` slot before the end of the queue. If there's no such slot, the queue is empty and the dequeuer would return nothing. If this slot is `SET`, it simply reads the data item in this slot and sets it to `HANDLED`. If this slot is `EMPTY`, that means this slot has been reserved by an enqueuer that hasn't finished. In this case, the dequeuer performs a scan forward to find the first `SET` slot. If not found, the dequeuer returns nothing. Otherwise, it continues to repeatedly scan all slots between the first non-`HANDLED` and the last found `SET` slot until the first `SET` slot between in this interval is unchanged between 2 scans. Only then, the dequeuer would return the data item in this `SET` slot and mark it as `HANDLED`.
 
-Similar to DQueue, CAS is only used when appending new segments at the end of the queue. Therefore, ABA problem only involves internal manipulation of pointers to dynamically-allocated memory. If a proper memory reclamation scheme is utilized.
+Similar to DQueue, CAS is only used when appending new segments at the end of the queue. Therefore, ABA problem only involves internal manipulation of pointers to dynamically-allocated memory. Consequently, if a proper memory reclamation scheme is utilized, ABA problem is also properly solved.
 
-Regarding memory reclamation, while the dequeuer is scanning the queue, it will reclaim any segments with only `HANDLED` slots. We can see there's potentially a pitfall similar to the one DQueue runs into here. To avoid this pitfall, Jiffy takes the following measures:
-- When scanning the queue and the dequeuer sees that a segment contains only `HANDLED` slots, it only reclaims the dynamically-allocated array in the segment, which consumes the most memory, while still keeping the linked-list structure intact. Therefore, if any enqueuer is holding a reference to a segment before the partially-reclaimed segment, it can still traverse the next pointer chain safely.
-- To fully reclaim a segment, when partially reclaim a segment, it is added to a garbage list. Note that the first segments that contain only `HANDLED` slots can be fully reclaimed right when the dequeuer performs the scan. When a segment is fully reclaimed, any segment in the garbage list that precedes this segment is also fully reclaimed.
+Regarding memory reclamation, dJiffy does not specify a sufficient scheme: If one enqueuer is delayed forever, no memory is ever reclaimed. As a consequence, if an enqueuer is delayed for too long, the system will run out of memory, causing other enqueuers to fail without making any progress. Effectively, dJiffy is not wait-free.
 
 === Remarks
 
-Out of the 4 investigated MPSC queue algorithms, we quickly eliminate DQueue and WRLQueue as a potential candidate for porting to distributed environment because they either do not provide a sufficient progress guarantee or protection against ABA problem and memory reclamation problem. Jiffy's idea of the dequeuer rescanning the global queue looking for a `SET` slot is quite useful and partly contributes to our idea of double scanning in Slotqueue (@slotqueue), which is our improvement over indefinite repeated scans as in Jiffy. For the time being, due to time constraints, LTQueue remains our primary inspiration and Jiffy will be adapted for distributed environments in the future.
+Out of the 4 investigated MPSC queue algorithms, we quickly eliminate DQueue, WRLQueue, Jiffy as a potential candidate for porting to distributed environment because they either do not provide a sufficient progress guarantee or protection against ABA problem and memory reclamation problem. Therefore, we will only adapt LTQueue for distributed environments in the next section. LTQueue also presents some challenges though, as it utilizes LL/SC for ABA solution, which does not exist in distributed environments. Consequently, to adapt LTQueue, we have to work around LTQueue's usage of LL/SC.
 
 == Distributed MPSC queues <dmpsc-related-works>
 
