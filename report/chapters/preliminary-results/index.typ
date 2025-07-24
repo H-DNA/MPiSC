@@ -1,6 +1,6 @@
 = Preliminary results <result>
 
-This section introduces our benchmarking process, including our setup, environment, interested metrics and our microbenchmark program. Most importantly, we showcase the premilinaries results on how well our novel algorithms perform, especially Slotqueue. We conclude this section with a discussion about the implications of these results.
+This section introduces our benchmarking process, including our setup, environment, interested metrics and our microbenchmark program. Most importantly, we showcase the preliminary results on how well our novel algorithms perform, especially Slotqueue. We conclude this section with a discussion about the implications of these results.
 
 Currently, performance-related properties are of our main focus.
 
