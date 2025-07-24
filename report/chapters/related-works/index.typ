@@ -189,4 +189,4 @@ To enqueue, the enqueuer first reads the `QueueNum` variable to see which queue 
 
 To dequeue, the dequeuer inverts `QueueNum` to direct future enqueuers to the other queue. The dequeuer then subtracts a sufficiently large number from `WriterCnt` to signal to other enqueuers that it has started processing. The dequeuer has to wait for all current enqueuers in the queue to finish by repeatedly checking the `WriterCnt` variable, hence the blocking property. After all enqueuers have finished, the dequeuer then batch-dequeues all data in the queue, resetting the `Offset` and `WriterCnt` variables to 0.
 
-Based on our discussion, there is currently no non-blocking distrbuted MPSC queue in the literature. This makes our reasearch the first one of the kind to be about non-blocking distributed MPSC queues. AMQueue will serve as a benchmarking baseline for our MPSC queues in @result[].
+Based on our discussion, there is currently no non-blocking distrbuted MPSC queue in the literature. This makes our research the first one of its kind to be about non-blocking distributed MPSC queues. AMQueue will serve as a benchmarking baseline for our MPSC queues in @result[].
