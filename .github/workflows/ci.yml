@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for git log commands
       
+      - name: Install packages
+        run: sudo apt-get install -y poppler-utils
+
       - name: Check for changes in Typst projects or README
         id: check_changes
         run: |
