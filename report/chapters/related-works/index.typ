@@ -1,4 +1,4 @@
-= Related works <related-works></related-works>
+= Related works <related-works>
 
 == Non-blocking shared-memory MPSC queues
 
@@ -149,7 +149,7 @@ Regarding memory reclamation, Jiffy does not specify a sufficient scheme: If one
 
 Out of the 4 investigated MPSC queue algorithms, we quickly eliminate DQueue, WRLQueue, and Jiffy as potential candidates for porting to a distributed environment because they either do not provide a sufficient progress guarantee or protection against the ABA problem and memory reclamation problem. Therefore, we will only adapt LTQueue for distributed environments in the next section. LTQueue also presents some challenges, though, as it utilizes LL/SC for the ABA solution, which does not exist in distributed environments. Consequently, to adapt LTQueue, we have to work around LTQueue's usage of LL/SC.
 
-== Distributed MPSC queues <dmpsc-related-works></dmpsc-related-works>
+== Distributed MPSC queues <dmpsc-related-works>
 
 This section summarizes, to the best of our knowledge, existing MPSC queue algorithms, which is reflected in @dmpsc-related-works.
 
