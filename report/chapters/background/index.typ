@@ -7,7 +7,7 @@
 Irregular applications are a class of programs particularly interesting in distributed computing. They are characterized by:
 - Unpredictable memory access: Before the program is actually run, we cannot know which data it will need to access. We can only know that at run time.
 - Data-dependent control flow: The decision of what to do next (such as which data to access next) is highly dependent on the values of the data already accessed, hence the unpredictable memory access property because we cannot statically analyze the program to know which data it will access. The control flow is inherently engraved in the data, which is not known until runtime.
-Irregular applications are interesting because they demand special techniques to achieve high performance. One specific challenge is that this type of applications is hard to model in traditional MPI APIs using the Send/Receive interface. This is specifically because using this interface requires a programmer to have already anticipated communication within pairs of processes before runtime, which is difficult with irregular applications. The introduction of MPI remote memory access (RMA) in MPI-2 and its improvement in MPI-3 has significantly improved MPI's capability to express irregular applications comfortably. This will be explained further in @mpi.
+Irregular applications are interesting because they demand special techniques to achieve high performance. One specific challenge is that this type of application is hard to model in traditional MPI APIs using the Send/Receive interface. This is specifically because using this interface requires a programmer to have already anticipated communication within pairs of processes before runtime, which is difficult with irregular applications. The introduction of MPI remote memory access (RMA) in MPI-2 and its improvement in MPI-3 has significantly improved MPI's capability to express irregular applications comfortably. This will be explained further in @mpi.
 
 === Actor model as an irregular application
 
@@ -16,13 +16,13 @@ Irregular applications are interesting because they demand special techniques to
   caption: [Actor model visualization.],
 ) <remind-actor-model>
 
-Actor model in actuality is a type of irregular application supported by the concurrent MPSC queue data structure.
+The actor model in actuality is a type of irregular application supported by the concurrent MPSC queue data structure.
 
-Each actor can be a process or a compute node in the cluster, carrying out a specific responsibility in the system. From time to time, there's a need for the actors to communicate with each other. For this purpose, the actor model offers a mailbox local to each actor. This mailbox exhibits MPSC queue behavior: Other actors can send messages to the mailbox to notify the owner actor and the owner actor at their leisure repeatedly extracts message from its mailbox. The actor model provides a simple programming model for concurrent processing.
+Each actor can be a process or a compute node in the cluster, carrying out a specific responsibility in the system. From time to time, there's a need for the actors to communicate with each other. For this purpose, the actor model offers a mailbox local to each actor. This mailbox exhibits MPSC queue behavior: Other actors can send messages to the mailbox to notify the owner actor and the owner actor at their leisure repeatedly extracts messages from its mailbox. The actor model provides a simple programming model for concurrent processing.
 
-The reasons why the actor model being an irregular application are straightforward to see:
+The reasons why the actor model is an irregular application are straightforward to see:
 - Unpredictable memory access: The cases in which one actor can anticipate which one of the other actors can send it a message are pretty rare and application-specific. As a general framework, in an actor model, the usual assumption is that any number of actors can try to communicate with an actor at some arbitrary time. By this nature, the communication pattern is unpredictable.
-- Data-dependent control-flow: If an actor A sends a message to another actor B, and when B reads this message, B decides to send another message to another actor C. As we can see, the control-flow is highly engraved in the messages, or in other words, the messages drive the program flow, which can only be known at runtime.
+- Data-dependent control flow: If an actor A sends a message to another actor B, and when B reads this message, B decides to send another message to another actor C. As we can see, the control flow is highly engraved in the messages, or in other words, the messages drive the program flow, which can only be known at runtime.
 
 === Fan-out/Fan-in pattern as an irregular application
 
@@ -33,70 +33,70 @@ The reasons why the actor model being an irregular application are straightforwa
 
 The fan-out/fan-in pattern is another type of irregular application supported by the concurrent MPSC queue data structure.
 
-In this pattern, there's a big task that can be splitted into subtasks to be executed concurrently on some work nodes. In the execution process, each worker produces a result set, each enqueued back to a result queue located on an aggregation node. The aggregation node can then dequeue from this result queue to perform further processing. Clearly, this result queue exhibits MPSC behavior.
+In this pattern, there's a big task that can be split into subtasks to be executed concurrently on some work nodes. In the execution process, each worker produces a result set, each enqueued back to a result queue located on an aggregation node. The aggregation node can then dequeue from this result queue to perform further processing. Clearly, this result queue exhibits MPSC behavior.
 
-The fan-out/fan-in pattern exhibits less irregularity than the actor model, however. Usually, the worker nodes and the aggregation node are known in advance. The aggregation node can anticipate Send calls from the worker nodes. Still, there's a degree of irregularity that this pattern exhibit: How can the aggregation node know how many Send calls a worker nodes will issue? This is highly driven by the task and the data involved in this task, hence, we have the data-dependent control-flow property. One can still statically calculate or predict how many Send calls a worker node will issue. Nevertheless, this is problem-specific. Therefore, the memory access pattern is somewhat unpredictable. Notice that if supported by a concurrent MPSC queue data structure, the fan-out/fan-in pattern is free from this burden of organizing the right amount of Send/Receive calls. Thus, combining with the MPSC queue, the fan-out/fan-in pattern becomes more general and easier to program.
+The fan-out/fan-in pattern exhibits less irregularity than the actor model, however. Usually, the worker nodes and the aggregation node are known in advance. The aggregation node can anticipate Send calls from the worker nodes. Still, there's a degree of irregularity that this pattern exhibits: How can the aggregation node know how many Send calls a worker node will issue? This is highly driven by the task and the data involved in this task, hence, we have the data-dependent control flow property. One can still statically calculate or predict how many Send calls a worker node will issue. Nevertheless, this is problem-specific. Therefore, the memory access pattern is somewhat unpredictable. Notice that if supported by a concurrent MPSC queue data structure, the fan-out/fan-in pattern is free from this burden of organizing the right amount of Send/Receive calls. Thus, combining with the MPSC queue, the fan-out/fan-in pattern becomes more general and easier to program.
 
 We have seen the role MPSC queues play in supporting irregular applications. It's important to understand what really comprises an MPSC queue data structure.
 
 == MPSC queue
 
-Multi-producer, single-consumer (MPSC) queue is a specialized concurrent first-in first-out (FIFO) data structure. A FIFO is a container data structure where items can be inserted into or taken out of, with the constraint that the items that are inserted earlier are taken out of earlier. Hence, it's also known as the queue data structure. The process that performs item insertion into the FIFO is called the producer and the process that performs items deletion (and retrieval) is called the consumer.
+Multi-producer, single-consumer (MPSC) queue is a specialized concurrent first-in first-out (FIFO) data structure. A FIFO is a container data structure where items can be inserted into or taken out of, with the constraint that the items that are inserted earlier are taken out earlier. Hence, it's also known as the queue data structure. The process that performs item insertion into the FIFO is called the producer and the process that performs item deletion (and retrieval) is called the consumer.
 
 In concurrent queues, multiple producers and consumers can run concurrently. One class of concurrent FIFOs is the MPSC queue, where one consumer may run in parallel with multiple producers.
 
-The reasons we're interested in MPSC queues instead of the more general multi-producer, multi-consumer (MPMC) queue data structures are that (1) high-performance and high-scalability MPSC queues are much simpler to design than MPMCs while (2) MPSC queues are powerful enough to solve certain problems, as demonstrated in @irregular-applications. The MPSC queue in actuality is an irregular application in and out of itself:
-- Unpredictable memory access: As a general data structure, the MPSC queue allows any process to enqueue and dequeue from at any time. By nature, its memory access patern is unpredictable.
-- Data-dependent control-flow: The consumer's behavior is entirely dependent on whether and which data is available in the MPSC queue. The execution paths of MPSC queues can vary, based on the queue contention i.e. some processes may backoff or retry some failed operations, this scenario often arise in lock-free data structures.
-As an implication, some irregular applications can actually "push" the "irregularity burden" to the distributed MPSC queue, which is already designed for high-performance and fault tolerance. This provides a comfortable level of abstraction for programmers that need to deal with irregular applications.
+The reasons we're interested in MPSC queues instead of the more general multi-producer, multi-consumer (MPMC) queue data structures are that (1) high-performance and high-scalability MPSC queues are much simpler to design than MPMCs while (2) MPSC queues are powerful enough to solve certain problems, as demonstrated in @irregular-applications. The MPSC queue in actuality is an irregular application in and of itself:
+- Unpredictable memory access: As a general data structure, the MPSC queue allows any process to enqueue and dequeue at any time. By nature, its memory access pattern is unpredictable.
+- Data-dependent control flow: The consumer's behavior is entirely dependent on whether and which data is available in the MPSC queue. The execution paths of MPSC queues can vary, based on the queue contention i.e. some processes may back off or retry some failed operations; this scenario often arises in lock-free data structures.
+As an implication, some irregular applications can actually "push" the "irregularity burden" to the distributed MPSC queue, which is already designed for high performance and fault tolerance. This provides a comfortable level of abstraction for programmers that need to deal with irregular applications.
 
 == Correctness condition of concurrent algorithms
 
-Correctness of concurrent algorithms is hard to defined, regarding the semantics of concurrent data structures like MPSC queues. One effort to formalize the correctness of concurrent data structures is the definition of *linearizability*. A method call on the FIFO can be visualized as an interval spanning two points in time. The starting point is called the *invocation event* and the ending point is called the *response event*. *Linearizability* informally states that each method call should appear to take effect instantaneously at some moment between its invocation event and response event @art-of-multiprocessor-programming. The moment the method call takes effect is termed the *linearization point*. Specifically, suppose the followings:
+Correctness of concurrent algorithms is hard to define, regarding the semantics of concurrent data structures like MPSC queues. One effort to formalize the correctness of concurrent data structures is the definition of *linearizability*. A method call on the FIFO can be visualized as an interval spanning two points in time. The starting point is called the *invocation event* and the ending point is called the *response event*. *Linearizability* informally states that each method call should appear to take effect instantaneously at some moment between its invocation event and response event @art-of-multiprocessor-programming. The moment the method call takes effect is termed the *linearization point*. Specifically, suppose the following:
 - We have $n$ concurrent method calls $m_1$, $m_2$, ..., $m_n$.
 - Each method call $m_i$ starts with the *invocation event* happening at timestamp $s_i$ and ends with the *response event* happening at timestamp $e_i$. We have $s_i < e_i$ for all $1 lt.eq i lt.eq n$.
 - Each method call $m_i$ has the *linearization point* happening at timestamp $l_i$, so that $s_i lt.eq l_i lt.eq e_i$.
-Then, linerizability means that if we have $l_1 < l_2 < ... < l_n$, the effect of these $n$ concurrent method calls $m_1$, $m_2$, ..., $m_n$ must be equivalent to calling $m_1$, $m_2$, ..., $m_n$ *sequentially*, one after the other in that order.
+Then, linearizability means that if we have $l_1 < l_2 < ... < l_n$, the effect of these $n$ concurrent method calls $m_1$, $m_2$, ..., $m_n$ must be equivalent to calling $m_1$, $m_2$, ..., $m_n$ *sequentially*, one after the other in that order.
 
 #figure(
   image("/static/images/linearizability.png"),
-  caption: [Linerization points of method 1, method 2, method 3, method 4 happens at $t_1 < t_2 < t_3 < t_4$, therefore, their effects will be observed in this order as if we call method 1, method 2, method 3, method 4 sequentially.],
+  caption: [Linearization points of method 1, method 2, method 3, method 4 happen at $t_1 < t_2 < t_3 < t_4$, therefore, their effects will be observed in this order as if we call method 1, method 2, method 3, method 4 sequentially.],
 )
 
 Linearizability is widely used as a correctness condition because of (1) its composability (if every component in the system is linearizable, the whole system is linearizable @herlihy-linearizability), which promotes modularity and ease of proof (2) its compatibility with human intuition, i.e. linearizability respects real-time order @herlihy-linearizability. Naturally, we choose linearizability to be the only correctness condition for our algorithms.
 
 == Progress guarantee of concurrent algorithms <progress-guarantee>
 
-Progress guarantee is a criteria that only arises in the context of concurrent algorithms. Informally, it's the degree of hinderance one process imposes on another process from completing its task. In the context of sequential algorithm, this is irrelevant because there's only ever one process. Progress guarantee has an implication on an algorithm's performance and fault-tolerance, especially in adverse situations, as we will explain in the following sections.
+Progress guarantee is a criterion that only arises in the context of concurrent algorithms. Informally, it's the degree of hindrance one process imposes on another process from completing its task. In the context of sequential algorithms, this is irrelevant because there's only ever one process. Progress guarantee has an implication on an algorithm's performance and fault tolerance, especially in adverse situations, as we will explain in the following sections.
 
 #import "@preview/subpar:0.2.2"
 
 === Blocking algorithms
 
-Many concurrent algorithms are based on locks to create mutual exclusion, in which only some processes that have acquired the locks are able to act, while the others have to wait. While lock-based algorithms are simple to read, write and verify, these algorithms are said to be *blocking*: One slow process may slow down the other faster processes, for example, if the slow process successfully acquires a lock and then the operating system (OS) decides to suspends it to schedule another one, this means until the process is awaken, the other processes that contend for the lock cannot continue.
+Many concurrent algorithms are based on locks to create mutual exclusion, in which only some processes that have acquired the locks are able to act, while the others have to wait. While lock-based algorithms are simple to read, write and verify, these algorithms are said to be *blocking*: One slow process may slow down the other faster processes, for example, if the slow process successfully acquires a lock and then the operating system (OS) decides to suspend it to schedule another one, this means until the process is awakened, the other processes that contend for the lock cannot continue.
 
-Blocking is the weakest progress guarantee one algorithm can offer, it allows one process to impose arbitrary impedance to any other processes, as shown in @blocking-algorithms.
+Blocking is the weakest progress guarantee one algorithm can offer; it allows one process to impose arbitrary impedance to any other processes, as shown in @blocking-algorithms.
 
 #figure(
   image(width: 200pt, "../../static/images/blocking.png"),
   caption: [Blocking algorithm: When a process is suspended, it can potentially block other processes from making further progress.],
 ) <blocking-algorithms>
 
-Blocking algorithms introduces many problems such as:
-- Deadlock: There's a circular lock-wait dependencies among the processes, effectively prevent any processes from making progress.
+Blocking algorithms introduce many problems such as:
+- Deadlock: There's a circular lock-wait dependency among the processes, effectively preventing any processes from making progress.
 - Convoy effect: One long process holding the lock will block other shorter processes contending for the lock.
 - Priority inversion: A higher-priority process effectively has very low priority because it has to wait for another low priority process.
-Furthermore, if a process that holds the lock dies, this will render the whole program unable to make any progress. This consideration holds even more weight in distributed computing because of a lot more failure modes, such as network failures, node falures, etc.
+Furthermore, if a process that holds the lock dies, this will render the whole program unable to make any progress. This consideration holds even more weight in distributed computing because of a lot more failure modes, such as network failures, node failures, etc.
 
-Therefore, while blocking algorithms, especially those using locks, are easy to write, they do not provide *progress guarantee* because *deadlock* or *livelock* can occur and its use of mutual exclusion is unnecessarily restrictive. Forturnately, there are other classes of algorithms which offer stronger progress guarantees.
+Therefore, while blocking algorithms, especially those using locks, are easy to write, they do not provide *progress guarantee* because *deadlock* or *livelock* can occur and their use of mutual exclusion is unnecessarily restrictive. Fortunately, there are other classes of algorithms which offer stronger progress guarantees.
 
 === Non-blocking algorithms
 
-An algorithm is said to be *non-blocking* if a failure or slow-down in one process cannot cause the failure or slow-down in another process. Lock-free and wait-free algorithms are two especially interesting subclasses of non-blocking algorithms. Unlike blocking algorithms, they provide stronger degrees of progress guarantees.
+An algorithm is said to be *non-blocking* if a failure or slowdown in one process cannot cause the failure or slowdown in another process. Lock-free and wait-free algorithms are two especially interesting subclasses of non-blocking algorithms. Unlike blocking algorithms, they provide stronger degrees of progress guarantees.
 
 ==== Lock-free algorithms
 
-Lock-free algorithms provide the following guarantee: Even if some processes are suspended, the remaining processes are ensured to make global progress and complete in bounded time. In other words, a process cannot cause hinderance to the global progress of the program. This property is invaluable in distributed computing, one dead or suspended process will not block the whole program, providing fault-tolerance. Designing lock-free algorithms requires careful use of atomic instructions, such as Fetch-and-add (FAA), Compare-and-swap (CAS), etc which will be explained in @atomic-instructions.
+Lock-free algorithms provide the following guarantee: Even if some processes are suspended, the remaining processes are ensured to make global progress and complete in bounded time. In other words, a process cannot cause hindrance to the global progress of the program. This property is invaluable in distributed computing; one dead or suspended process will not block the whole program, providing fault tolerance. Designing lock-free algorithms requires careful use of atomic instructions, such as Fetch-and-add (FAA), Compare-and-swap (CAS), etc which will be explained in @atomic-instructions.
 
 #figure(
   image(width: 200pt, "../../static/images/lock-freedom.png"),
@@ -105,7 +105,7 @@ Lock-free algorithms provide the following guarantee: Even if some processes are
 
 ==== Wait-free algorithms
 
-Wait-freedom offers the strongest degree of progress guarantee. It mandates that no process can cause constant hinderance to any running process. While lock-freedom ensures that at least one of the alive processes will make progress, wait-freedom guarantees that any alive processes will finish in finite number of steps. Wait-freedom can be desirable because it prevents starvation. Lock-freedom still allows the possibility of one process having to wait for another indefinitely, as long as some still makes progress.
+Wait-freedom offers the strongest degree of progress guarantee. It mandates that no process can cause constant hindrance to any running process. While lock-freedom ensures that at least one of the alive processes will make progress, wait-freedom guarantees that any alive process will finish in a finite number of steps. Wait-freedom can be desirable because it prevents starvation. Lock-freedom still allows the possibility of one process having to wait for another indefinitely, as long as some still make progress.
 
 #figure(
   image(width: 200pt, "../../static/images/wait-freedom.png"),
@@ -137,7 +137,7 @@ Fetch-and-add can be used to create simple distributed counters.
 
 === Compare-and-swap (CAS)
 
-Compare-and-swap (CAS) is probably the most popular atomic operation instruction. The reason for its popularity is (1) CAS is a *universal atomic instruction* with the *concensus number* of $infinity$, which means it's the most powerful atomic instruction @herlihy-hierarchy (2) CAS is implemented in most hardware (3) some concurrent lock-free data structures such as MPSC queues are more easily expressed using a powerful atomic instruction such as CAS.
+Compare-and-swap (CAS) is probably the most popular atomic operation instruction. The reason for its popularity is (1) CAS is a *universal atomic instruction* with the *consensus number* of $infinity$, which means it's the most powerful atomic instruction @herlihy-hierarchy (2) CAS is implemented in most hardware (3) some concurrent lock-free data structures such as MPSC queues are more easily expressed using a powerful atomic instruction such as CAS.
 
 The semantics of CAS is as follows. Given the instruction `CAS(memory location, old value, new value)`, atomically compares the value at `memory location` to see if it equals `old value`; if so, sets the value at `memory location` to `new value` and returns true; otherwise, leaves the value at `memory location` unchanged and returns false. Informally, its effect is equivalent to the function in @CAS-function.
 
@@ -155,7 +155,7 @@ The semantics of CAS is as follows. Given the instruction `CAS(memory location, 
   ],
 ) <CAS-function>
 
-Compare-and-swap is very powerful and consequently, pervasive in concurrent algorithms and data structure.
+Compare-and-swap is very powerful and consequently, pervasive in concurrent algorithms and data structures.
 
 Non-blocking concurrent algorithms often utilize CAS as follows. The steps 1-3 are retried until success.
 1. Read the current value `old value = read(memory location)`.
@@ -167,26 +167,26 @@ This scheme is, however, susceptible to the ABA problem, which will be discussed
 
 Load-link/Store-conditional is actually a pair of atomic instructions for synchronization.
 
-Semantically, load-link returns a value currently located at a memory location $x$ while store-conditional sets the memory location $x$ to a value $v$ if there's no other writes to $x$ since the last load-link call, otherwise, the store-conditional call would fail.
+Semantically, load-link returns a value currently located at a memory location $x$ while store-conditional sets the memory location $x$ to a value $v$ if there's no other write to $x$ since the last load-link call, otherwise, the store-conditional call would fail.
 
-Intuitively, LL/SC provides an easier synchronization primitive than CAS: LL/SC ensures that a store-conditional can only succeed if there's no access to a memory location, while CAS can still succeed in this case if the value at the memory location does not change. Due to this property, LL/SC is not vulnerable to the ABA problem (see @ABA-problem). However, CAS is in fact as powerful as LL/SC, condersing that they can implement each other @herlihy-hierarchy.
+Intuitively, LL/SC provides an easier synchronization primitive than CAS: LL/SC ensures that a store-conditional can only succeed if there's no access to a memory location, while CAS can still succeed in this case if the value at the memory location does not change. Due to this property, LL/SC is not vulnerable to the ABA problem (see @ABA-problem). However, CAS is in fact as powerful as LL/SC, considering that they can implement each other @herlihy-hierarchy.
 
-Practically, store-conditional can still fail even if there's no writes to the same memory location since the last load-link call. This is called a spurious failure. For example, consider the following generic sequence of events:
+Practically, store-conditional can still fail even if there's no write to the same memory location since the last load-link call. This is called a spurious failure. For example, consider the following generic sequence of events:
 + Thread X calls load-link on $x$ and loads out $v$.
 + Thread X computes a new value $v'$.
 + Some _exceptional event_ happens (discussed below). Assume that no other threads access $x$ during this time.
-+ Thread X calls store-conditional to store $v'$ to $x$. It _should succeed_ but _fails_ anyways.
++ Thread X calls store-conditional to store $v'$ to $x$. It _should succeed_ but _fails_ anyway.
 Exceptional events that can cause the store-conditional to fail spuriously include:
 - Cache line flushing: If the cache line that caches the memory location $x$ is written back to memory, logically, the memory location $x$ has been accessed and therefore, the store-conditional fails.
 - Context switch: If thread $X$ is swapped out by the OS, cache lines may be invalidated and flushed out, which consequently leads to the first scenario.
 
-LL/SC even though as powerful as CAS, is not as widespread as CAS, in fact, as of MPI-3, only CAS is supported.
+LL/SC even though as powerful as CAS, is not as widespread as CAS; in fact, as of MPI-3, only CAS is supported.
 
 == Common issues when designing non-blocking algorithms
 
 === ABA problem <ABA-problem>
 
-ABA problem is a notorious problem associated with the compare-and-swap atomic instruction. Because CAS is so widely used in non-blocking algorithms, ABA problem almost has to always be accounted for.
+The ABA problem is a notorious problem associated with the compare-and-swap atomic instruction. Because CAS is so widely used in non-blocking algorithms, the ABA problem almost has to always be accounted for.
 
 As a reminder, here's how CAS is often utilized in non-blocking concurrent algorithms: The steps 1-3 are retried until success.
 1. Read the current value `old value = read(memory location)`.
@@ -219,7 +219,7 @@ As a reminder, here's how CAS is often utilized in non-blocking concurrent algor
   label: <ABA-problem-case>,
 )
 
-As hinted, this scheme is susceptible to the notorious ABA problem. The following scenario illustrate and example of ABA problem:
+As hinted, this scheme is susceptible to the notorious ABA problem. The following scenario illustrates an example of the ABA problem:
 1. Process 1 reads the current value of `memory location` and reads out `A`.
 2. Process 1 manipulates resources associated with `A`, and allocates resources based on these resources.
 3. Process 1 suspends.
@@ -227,13 +227,13 @@ As hinted, this scheme is susceptible to the notorious ABA problem. The followin
 5. Process 2 `CAS(memory location, A, B)` so that resources associated with `A` are no longer valid.
 6. Process 3 `CAS(memory location, B, A)` and allocates new resources associated with `A`.
 7. Process 1 continues and `CAS(memory location, A, new value)` relying on the fact that the old resources associated with `A` are still valid while in fact they aren't.
-ABA problem arises fundamentally because most algorithms assume a memory location is not accessed if its value is unchanged.
+The ABA problem arises fundamentally because most algorithms assume a memory location is not accessed if its value is unchanged.
 
-A specific case of ABA problem is given in @ABA-problem-case.
+A specific case of the ABA problem is given in @ABA-problem-case.
 
-To safe-guard against ABA problem, one must ensure that between the time a process reads out a value from a shared memory location and the time it calls CAS on that location, there's no possibility another process has CAS-ed the memory location to the same value.
+To safeguard against the ABA problem, one must ensure that between the time a process reads out a value from a shared memory location and the time it calls CAS on that location, there's no possibility another process has CAS-ed the memory location to the same value.
 
-A simple scheme that's widely used practically and also in this thesis is the *unique timestamp* scheme. This scheme's idea is simple: for each shared memory location that is affected by CAS operations, we reserve some bits of this memory location for a monotonic counter. Each time a CAS operation is carried out, this counter is incremented. Theoretically, ABA problem would never happen because combining with this counter, the value of this memory location is always unique, due to the counter never repeats itself. However, practically, the counter can overflow and wrap-around to the same value and ABA problem would happen in this case. Therefore, the counter's range must be big enough so that this scenario can't virtually happen. Empirically, a counter of 32-bit should be enough. The drawback of this approach is that we have wasted 32 meaningful bits to avoid ABA problem.
+A simple scheme that's widely used practically and also in this thesis is the *unique timestamp* scheme. This scheme's idea is simple: for each shared memory location that is affected by CAS operations, we reserve some bits of this memory location for a monotonic counter. Each time a CAS operation is carried out, this counter is incremented. Theoretically, the ABA problem would never happen because combining with this counter, the value of this memory location is always unique, due to the counter never repeating itself. However, practically, the counter can overflow and wrap around to the same value and the ABA problem would happen in this case. Therefore, the counter's range must be big enough so that this scenario can't virtually happen. Empirically, a counter of 32-bit should be enough. The drawback of this approach is that we have wasted 32 meaningful bits to avoid the ABA problem.
 
 === Safe memory reclamation problem
 
@@ -414,21 +414,21 @@ Solutions to this problem must ensure that memory is only freed when no other pr
 //   ),
 // )
 //
-// In conclusion, atomic operations avoid undefined behavior on concurrent accesses to the same memory location while memory orders help us enforce ordering of operations accross threads, which can be used to reason about the program.
+// In conclusion, atomic operations avoid undefined behavior on concurrent accesses to the same memory location while memory orders help us enforce ordering of operations across threads, which can be used to reason about the program.
 
 == MPI-3 - A popular distributed programming library interface specification <mpi>
 
-MPI stands for message passing interface, which is a *message-passing library interface specification*. Design goals of MPI includes high availability across platforms, efficient communication, thread-safety, reliable and convenient communication interface while still allowing hardware-specific accelerated mechanisms to be exploited @mpi-3.1.
+MPI stands for message passing interface, which is a *message-passing library interface specification*. Design goals of MPI include high availability across platforms, efficient communication, thread safety, reliable and convenient communication interface while still allowing hardware-specific accelerated mechanisms to be exploited @mpi-3.1.
 
 === MPI-3 RMA
 
-RMA in MPI RMA stands for remote memory access. As introduced in the first section of @background, RMA APIs is introduced in MPI-2 and its capabilities are further extended in MPI-3 to conveniently express irregular applications. In general, RMA is intended to support applications with dynamically changing data access patterns where the data distribution is fixed or slowly changing @mpi-3.1. This is very similar to the properties of irregular applications as discussed in @irregular-applications. In such applications, one process, based on the data it needs, knowing the data distribution, can compute the nodes where the data is stored. However, because data access pattern is not known, each process cannot know whether any other processes will access its data. Using the traditional Send/Receive interface, both sides need to issue matching operations by distributing appropriate transfer parameters. This is not suitable, as previously explain, only the side that needs to access the data knows all the transfer parameters while the side that stores the data cannot anticipate this.
+RMA in MPI RMA stands for remote memory access. As introduced in the first section of @background, RMA APIs were introduced in MPI-2 and their capabilities are further extended in MPI-3 to conveniently express irregular applications. In general, RMA is intended to support applications with dynamically changing data access patterns where the data distribution is fixed or slowly changing @mpi-3.1. This is very similar to the properties of irregular applications as discussed in @irregular-applications. In such applications, one process, based on the data it needs, knowing the data distribution, can compute the nodes where the data is stored. However, because the data access pattern is not known, each process cannot know whether any other processes will access its data. Using the traditional Send/Receive interface, both sides need to issue matching operations by distributing appropriate transfer parameters. This is not suitable, as previously explained; only the side that needs to access the data knows all the transfer parameters while the side that stores the data cannot anticipate this.
 
 === MPI-RMA communication operations
 
 RMA only requires one side to specify all the transfer parameters and thus only that side to participate in data communication.
 
-To utilize MPI RMA, each process needs to open a memory window to expose a segment of its memory to RMA communication operations such as remote writes (`MPI_PUT`), remote reads (`MPI_GET`) or remote accumulates (`MPI_ACCUMULATE`, `MPI_GET_ACCUMULATE`, `MPI_FETCH_AND_OP`, `MPI_COMPARE_AND_SWAP`) @mpi-3.1. These remote communication operations only requires one side to specify.
+To utilize MPI RMA, each process needs to open a memory window to expose a segment of its memory to RMA communication operations such as remote writes (`MPI_PUT`), remote reads (`MPI_GET`) or remote accumulates (`MPI_ACCUMULATE`, `MPI_GET_ACCUMULATE`, `MPI_FETCH_AND_OP`, `MPI_COMPARE_AND_SWAP`) @mpi-3.1. These remote communication operations only require one side to specify.
 
 === MPI-RMA synchronization
 
@@ -443,7 +443,7 @@ In *passive target synchronization*, any RMA communication calls must be within 
 
 // === MPI-3 SHM
 //
-// Historically, MPI as a message passing framework is often used in combination with other shared-memory frameworks such as OpenMP or pthreads to optimize communication within processes in a node. MPI-3 SHM (shared memory) is a capability introduced in MPI-3 to optimize intra-node communication within MPI RMA windows. This leads to the rise of MPI+MPI approach in distributed programming @zhou. In MPI-3, *shared-memory windows* can be created via `MPI_Win_allocate_shared`. Shared memory windows can be used for both one-sided communication and shared memory access. Besides using MPI-RMA facilities for communication and synchronization in these *shared-memory windows*, other communication and synchronization mechanisms provided by other shared-memory frameworks such as C++11 atomics can also be used. Typically, C++11 atomics allows for much more efficient communication and synchronization compared to MPI-RMA. Therefore, MPI-3 SHM can be used as an optimization for intra-node communication within MPI RMA programs. A general approach in using shared memory windows with tradition MPI RMA is discussed further in @zhou.
+// Historically, MPI as a message passing framework is often used in combination with other shared-memory frameworks such as OpenMP or pthreads to optimize communication within processes in a node. MPI-3 SHM (shared memory) is a capability introduced in MPI-3 to optimize intra-node communication within MPI RMA windows. This leads to the rise of MPI+MPI approach in distributed programming @zhou. In MPI-3, *shared-memory windows* can be created via `MPI_Win_allocate_shared`. Shared memory windows can be used for both one-sided communication and shared memory access. Besides using MPI-RMA facilities for communication and synchronization in these *shared-memory windows*, other communication and synchronization mechanisms provided by other shared-memory frameworks such as C++11 atomics can also be used. Typically, C++11 atomics allows for much more efficient communication and synchronization compared to MPI-RMA. Therefore, MPI-3 SHM can be used as an optimization for intra-node communication within MPI RMA programs. A general approach in using shared memory windows with traditional MPI RMA is discussed further in @zhou.
 //
 
 == Pure MPI - A porting approach of shared memory algorithms to distributed algorithms
@@ -467,7 +467,7 @@ In the MPI-3 specification @mpi-3.1, these functions are specified as in @mpi-wi
     columns: (1fr, 2.5fr),
     table.header([*Operation*], [*Usage*]),
     [`MPI_Win_lock_all`],
-    [Starts and RMA access epoch to all processes in a memory window, with a lock type of `MPI_LOCK_SHARED`. The calling process can access the window memory on all processes in the memory window using RMA operations. This routine is not collective.],
+    [Starts an RMA access epoch to all processes in a memory window, with a lock type of `MPI_LOCK_SHARED`. The calling process can access the window memory on all processes in the memory window using RMA operations. This routine is not collective.],
 
     [`MPI_Win_unlock_all`],
     [Matches with an `MPI_Win_lock_all` to unlock a window previously locked by that `MPI_Win_lock_all`.],
@@ -475,9 +475,9 @@ In the MPI-3 specification @mpi-3.1, these functions are specified as in @mpi-wi
 ) <mpi-win-sync-spec>
 
 The reason we choose this is 3-fold:
-- Unlike *active target synchronization*, *passive target synchronization* does not require the process whose memory is being accessed by an MPI RMA communication call to participate in. This is in line with our intention to use MPI RMA to easily model irregular applications like MPSC queues.
-- Unlike *active target synchronization*, `MPI_Win_lock_all` and `MPI_Win_unlock_all` do not need to wait for a matching synchronization call in the target process, and thus, is not delayed by the target process.
-- Unlike *passive target synchronization* with `MPI_Win_lock`/`MPI_Win_unlock`, multiple calls of `MPI_Win_lock_all` can succeed concurrently, so one process needing to issue MPI RMA communication calls do not block others.
+- Unlike *active target synchronization*, *passive target synchronization* does not require the process whose memory is being accessed by an MPI RMA communication call to participate. This is in line with our intention to use MPI RMA to easily model irregular applications like MPSC queues.
+- Unlike *active target synchronization*, `MPI_Win_lock_all` and `MPI_Win_unlock_all` do not need to wait for a matching synchronization call in the target process, and thus, are not delayed by the target process.
+- Unlike *passive target synchronization* with `MPI_Win_lock`/`MPI_Win_unlock`, multiple calls of `MPI_Win_lock_all` can succeed concurrently, so one process needing to issue MPI RMA communication calls does not block others.
 
 An example of our pure MPI approach with `MPI_Win_lock_all`/`MPI_Win_unlock_all`, inspired by @dinan, is illustrated in the following:
 
@@ -497,8 +497,8 @@ An example of our pure MPI approach with `MPI_Win_lock_all`/`MPI_Win_unlock_all`
     MPI_Compare_and_swap(...); // Remote compare and swap
     ...
 
-    MPI_Win_flush(...); // Make previous RMA operations take effects
-    MPI_Win_flush_local(...); // Make previous RMA operations take effects locally
+    MPI_Win_flush(...); // Make previous RMA operations take effect
+    MPI_Win_flush_local(...); // Make previous RMA operations take effect locally
     ...
 
     MPI_Win_unlock_all(win);
