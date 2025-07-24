@@ -19,7 +19,7 @@ As LL/SC is not supported by MPI, we'll have to replace them using some other su
   new_val = f(old_val) # new-value-computation time-frame
   sc(svar, new_val)
   ```
-  `sc` will succeed if `location` is not accessed in the time between `ll` and `sc`, even if `location` is written the same value. Therefore, LL/SC allows us to set a location to a new value if it hasn't been accessed since last read.
+  `sc` will succeed if `location` is not accessed in the time between `ll` and `sc`, even if `location` is written the same value. Therefore, LL/SC allows us to set a location to a new value if it has not been accessed since last read.
   
   Ignoring the ABA problem, this should be roughly equivalent:
   ```python
@@ -27,7 +27,7 @@ As LL/SC is not supported by MPI, we'll have to replace them using some other su
   new_val = f(old_val) # new-value-computation timeframe
   CAS(svar, old_val, new_val)
   ```
-  This lies on the assumption that *if a memory location checked at two times is not changed, it hasn't been accessed within this period*. Put it other way, the above sequence allows us to set a location to a new value if its value hasn't changed since last read. Note the difference, and hence, that's why the ABA problem exists for CAS.
+  This lies on the assumption that *if a memory location checked at two times is not changed, it has not been accessed within this period*. Put it other way, the above sequence allows us to set a location to a new value if its value has not changed since last read. Note the difference, and hence, that is why the ABA problem exists for CAS.
 
   Based on the above observation, if we can ensure that no two accesses within the new-value-computation timeframe set the location to the same value, the CAS sequence will behave like the LL/SC sequence. This follows that we have to restrict the way we update the location.
 
@@ -73,7 +73,7 @@ The simplest approach is to use a monotonic version tag: Reserve some bits in th
 * Control bits: The bits that comprise the meaningful value of the shared variable.
 * Counter bits: Represent a monotonic counter.
 
-So, `svar = [Control bits | Counter bits]`. Additionally, `CAS(svar, old value, new value)` becomes `CAS(svar, [old control bits, counter bits], [new control bits, counter bits + 1])`. If overflow of the counter bits does not occur, ABA problem would not occur because the value of the shared variable as a whole is always unique. If overflow does occur, there's a chance that ABA problem occurs, therefore, the larger the counter bits, the less chance the ABA problem occurs. The drawback is that this limits the range of meaningful values for the shared variable.
+So, `svar = [Control bits | Counter bits]`. Additionally, `CAS(svar, old value, new value)` becomes `CAS(svar, [old control bits, counter bits], [new control bits, counter bits + 1])`. If overflow of the counter bits does not occur, ABA problem would not occur because the value of the shared variable as a whole is always unique. If overflow does occur, there is a chance that ABA problem occurs, therefore, the larger the counter bits, the less chance the ABA problem occurs. The drawback is that this limits the range of meaningful values for the shared variable.
 
 Can we use version tag for `timestamp`? We know that timestamp is already split into `[counter, rank]`. Using a version tag means that we have to further split the 64 bits:
 - `counter` needs to be very large that overflow practically cannot occur.
@@ -94,17 +94,17 @@ Coming back to the very nature of [LTQueue](/refs/LTQueue/README.md), we can pro
 
 ![image](https://github.com/user-attachments/assets/8f5e0e2c-7ebd-4b87-a06d-7524b193358b)
 
-Notice that, except right in the middle of a dequeue, for a specific `rank`, there's only one corresponding `min-timestamp` in the internal node. How about restructuring the tree like this:
+Notice that, except right in the middle of a dequeue, for a specific `rank`, there is only one corresponding `min-timestamp` in the internal node. How about restructuring the tree like this:
 
 ![image](https://github.com/user-attachments/assets/040cea8f-4d21-4597-8b95-5ce3eb84d1eb)
 
-`rank` in this case acts like a pointer - it points to specific min-timestamp in a node with that rank - with one extra benefit: we don't need `malloc` or `free`, so no need for safe memory reclamation.
+`rank` in this case acts like a pointer - it points to specific min-timestamp in a node with that rank - with one extra benefit: we do not need `malloc` or `free`, so no need for safe memory reclamation.
 
 The ABA problem still remains. However, because `rank` is now a full-flexed 64-bit number, we can just split `rank` into `rank` and `version tag`.
 
 ![image](https://github.com/user-attachments/assets/f4500f36-79e2-4729-bb2d-3b5e841500fa)
 
-There's a nuance though. In the original version, the `timestamp` at each internal node is guaranteed to be minimum among the timestamps in the subtree rooted at the internal node (not really, if changes have not been propagated yet). However, with our version, suppose in the above visualization, we dequeue so that the min-timestamp of rank 1 changes and becomes bigger than min-timestamp of rank 2, still, right at that moment, some internal nodes still point to rank 1, implicitly implies that the new min-timestamp of rank 1 is the min-timestamp of the whole subtree, which is incorrect.
+There is a nuance though. In the original version, the `timestamp` at each internal node is guaranteed to be minimum among the timestamps in the subtree rooted at the internal node (not really, if changes have not been propagated yet). However, with our version, suppose in the above visualization, we dequeue so that the min-timestamp of rank 1 changes and becomes bigger than min-timestamp of rank 2, still, right at that moment, some internal nodes still point to rank 1, implicitly implies that the new min-timestamp of rank 1 is the min-timestamp of the whole subtree, which is incorrect.
 
 Cons:
   - Each time we read the internal node, we have to dereference the rank at the node to access the timestamp. This doubles network activities when accessing the internal node. 

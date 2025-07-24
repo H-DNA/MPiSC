@@ -35,7 +35,7 @@ The porting approach we choose is to use MPI-3 RMA to port lock-free queue algor
     <li>Data locations cannot be known in advance, it can change during execution.</li>
   </ul>
   
-  In other words, we cannot statically analyze where the data may be stored - data can be stored anywhere and we can only determine its location at runtime. This means the tradition message passing interface using <code>MPI_Send</code> and <code>MPI_Recv</code> is insufficient: Suppose at runtime, process <code>A</code> wants and knows to access a piece of data at <code>B</code>, then <code>A</code> must issue <code>MPI_Recv(B)</code>, but this requires <code>B</code> to anticipate that it should issue <code>MPI_Send(A, data)</code> and know that which data <code>A</code> actually wants. The latter issue can be worked around by having <code>A</code> issue <code>MPI_Send(B, data_descriptor)</code> first. Then, <code>B</code> must have waited for <code>MPI_Recv(A)</code>. However, because the memory access pattern is not known, <code>B</code> must anticipate that any other processes may want to access its data. It's possible but cumbersome.
+  In other words, we cannot statically analyze where the data may be stored - data can be stored anywhere and we can only determine its location at runtime. This means the tradition message passing interface using <code>MPI_Send</code> and <code>MPI_Recv</code> is insufficient: Suppose at runtime, process <code>A</code> wants and knows to access a piece of data at <code>B</code>, then <code>A</code> must issue <code>MPI_Recv(B)</code>, but this requires <code>B</code> to anticipate that it should issue <code>MPI_Send(A, data)</code> and know that which data <code>A</code> actually wants. The latter issue can be worked around by having <code>A</code> issue <code>MPI_Send(B, data_descriptor)</code> first. Then, <code>B</code> must have waited for <code>MPI_Recv(A)</code>. However, because the memory access pattern is not known, <code>B</code> must anticipate that any other processes may want to access its data. It is possible but cumbersome.
    
    MPI RMA is specifically designed to conveniently express irregular applications by having one side specify all it wants.
 
@@ -90,7 +90,7 @@ The porting approach we choose is to use MPI-3 RMA to port lock-free queue algor
 - A slow process performing `enqueue` and `dequeue` could leave the queue in an intermediate state.
 
   Possible solutions:
-  - Help mechanism (introduced in [MSQueue](./references/MSQueue/README.md)): To be lockfree, the other processes can help out patching up the queue (don't wait).
+  - Help mechanism (introduced in [MSQueue](./references/MSQueue/README.md)): To be lock-free, the other processes can help out patching up the queue (do not wait).
 
 - A dead process performing `enqueue` and `dequeue` could leave the queue broken.
   

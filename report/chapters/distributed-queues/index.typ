@@ -21,9 +21,9 @@ Based on the MPSC queue algorithms we have surveyed in @related-works[], we prop
 - dLTQueue (@dLTQueue) is a direct modification of the original LTQueue @ltqueue without any usage of LL/SC, adapted for distributed environment.
 - Slotqueue (@slotqueue) is inspired by the timestamp-refreshing idea of LTQueue @ltqueue and repeated-rescan of Jiffy @jiffy. Although it still bears some resemblance to LTQueue, we believe it to be more optimized for distributed context.
 
-In actuality, dLTQueue and Slotqueue are more than simple MPSC algorithms. They are "MPSC queue wrappers", that is, given an SPSC queue implementation, they yield an MPSC implementation. There's one additional constraint: The SPSC interface must support an additional `readFront` operation, which returns the first data item currently in the SPSC queue.
+In actuality, dLTQueue and Slotqueue are more than simple MPSC algorithms. They are "MPSC queue wrappers", that is, given an SPSC queue implementation, they yield an MPSC implementation. There is one additional constraint: The SPSC interface must support an additional `readFront` operation, which returns the first data item currently in the SPSC queue.
 
-This fact has an important implication: when we're talking about the characteristics (correctness, progress guarantee, performance model, ABA solution and safe memory reclamation scheme) of an MPSC queue wrapper, we're talking about the correctness, progress guarantee, performance model, ABA solution and safe memory reclamation scheme of the wrapper that turns an SPSC queue to an MPSC queue:
+This fact has an important implication: when we are talking about the characteristics (correctness, progress guarantee, performance model, ABA solution and safe memory reclamation scheme) of an MPSC queue wrapper, we are talking about the correctness, progress guarantee, performance model, ABA solution and safe memory reclamation scheme of the wrapper that turns an SPSC queue to an MPSC queue:
 - If the underlying SPSC queue is linearizable (which is composable), the resulting MPSC queue is linearizable.
 - The resulting MPSC queue's progress guarantee is the weaker guarantee between the wrapper's and the underlying SPSC's.
 - If the underlying SPSC queue is safe against ABA problem and memory reclamation, the resulting MPSC queue is also safe against these problems.
@@ -202,7 +202,7 @@ The procedures of the enqueuer are given as follows.
   ],
 ) <spsc-enqueue>
 
-`spsc_enqueue` first computes the new `Last` value (@line-spsc-enqueue-new-last). If the queue is full as indicating by the difference the new `Last` value and `First_buf` (@line-spsc-enqueue-diff-cache-once), there can still be the possibility that some elements have been dequeued but `First_buf` hasn't been synced with `First` yet, therefore, we first refresh the value of `First_buf` by fetching from `First` (@line-spsc-enqueue-resync-first). If the queue is still full (@line-spsc-enqueue-diff-cache-twice), we signal failure (@line-spsc-enqueue-full). Otherwise, we proceed to write the enqueued value to the entry at `Last_buf % Capacity` (@line-spsc-enqueue-write), increment `Last` (@line-spsc-enqueue-increment-last), update the value of `Last_buf` (@line-spsc-enqueue-update-cache) and signal success (@line-spsc-enqueue-success).
+`spsc_enqueue` first computes the new `Last` value (@line-spsc-enqueue-new-last). If the queue is full as indicating by the difference the new `Last` value and `First_buf` (@line-spsc-enqueue-diff-cache-once), there can still be the possibility that some elements have been dequeued but `First_buf` has not been synced with `First` yet, therefore, we first refresh the value of `First_buf` by fetching from `First` (@line-spsc-enqueue-resync-first). If the queue is still full (@line-spsc-enqueue-diff-cache-twice), we signal failure (@line-spsc-enqueue-full). Otherwise, we proceed to write the enqueued value to the entry at `Last_buf % Capacity` (@line-spsc-enqueue-write), increment `Last` (@line-spsc-enqueue-increment-last), update the value of `Last_buf` (@line-spsc-enqueue-update-cache) and signal success (@line-spsc-enqueue-success).
 
 #figure(
   kind: "algorithm",
@@ -222,7 +222,7 @@ The procedures of the enqueuer are given as follows.
   ],
 ) <spsc-enqueue-readFront>
 
-`spsc_readFront`#sub(`e`) first checks if the SPSC is empty based on the difference between `First_buf` and `Last_buf` (@line-spsc-e-readFront-diff-cache-once). Note that if this check fails, we signal failure immediately (@line-spsc-e-readFront-empty-once) without refetching either `First` or `Last`. This suffices because `Last` cannot be out-of-sync with `Last_buf` as we're the enqueuer and `First` can only increase since the last refresh of `First_buf`, therefore, if we refresh `First` and `Last`, the condition on @line-spsc-e-readFront-diff-cache-once would return `false` anyways. If the SPSC is not empty, we refresh `First` and re-perform the empty check (@line-spsc-e-readFront-diff-cache-twice - @line-spsc-e-readFront-empty-twice). If the SPSC is again not empty, we read the queue entry at `First_buf % Capacity` into `output` (@line-spsc-e-readFront-read) and signal success (@line-spsc-e-readFront-success).
+`spsc_readFront`#sub(`e`) first checks if the SPSC is empty based on the difference between `First_buf` and `Last_buf` (@line-spsc-e-readFront-diff-cache-once). Note that if this check fails, we signal failure immediately (@line-spsc-e-readFront-empty-once) without refetching either `First` or `Last`. This suffices because `Last` cannot be out-of-sync with `Last_buf` as we are the enqueuer and `First` can only increase since the last refresh of `First_buf`, therefore, if we refresh `First` and `Last`, the condition on @line-spsc-e-readFront-diff-cache-once would return `false` anyways. If the SPSC is not empty, we refresh `First` and re-perform the empty check (@line-spsc-e-readFront-diff-cache-twice - @line-spsc-e-readFront-empty-twice). If the SPSC is again not empty, we read the queue entry at `First_buf % Capacity` into `output` (@line-spsc-e-readFront-read) and signal success (@line-spsc-e-readFront-success).
 
 The procedures of the dequeuer are given as follows.
 
@@ -247,7 +247,7 @@ The procedures of the dequeuer are given as follows.
   ],
 ) <spsc-dequeue>
 
-`spsc_dequeue` first computes the new `First` value (@line-spsc-dequeue-new-first). If the queue is empty as indicating by the difference the new `First` value and `Last_buf` (@line-spsc-dequeue-empty-once), there can still be the possibility that some elements have been enqueued but `Last_buf` hasn't been synced with `Last` yet, therefore, we first refresh the value of `Last_buf` by fetching from `Last` (@line-spsc-dequeue-resync-last). If the queue is still empty (@line-spsc-dequeue-empty-twice), we signal failure (@line-spsc-dequeue-empty). Otherwise, we proceed to read the top value at `First_buf % Capacity` (@line-spsc-dequeue-read) into `output`, increment `First` (@line-spsc-dequeue-swing-first) - effectively dequeue the element, update the value of `First_buf` (@line-spsc-dequeue-update-cache) and signal success (@line-spsc-dequeue-success).
+`spsc_dequeue` first computes the new `First` value (@line-spsc-dequeue-new-first). If the queue is empty as indicating by the difference the new `First` value and `Last_buf` (@line-spsc-dequeue-empty-once), there can still be the possibility that some elements have been enqueued but `Last_buf` has not been synced with `Last` yet, therefore, we first refresh the value of `Last_buf` by fetching from `Last` (@line-spsc-dequeue-resync-last). If the queue is still empty (@line-spsc-dequeue-empty-twice), we signal failure (@line-spsc-dequeue-empty). Otherwise, we proceed to read the top value at `First_buf % Capacity` (@line-spsc-dequeue-read) into `output`, increment `First` (@line-spsc-dequeue-swing-first) - effectively dequeue the element, update the value of `First_buf` (@line-spsc-dequeue-update-cache) and signal success (@line-spsc-dequeue-success).
 
 #figure(
   kind: "algorithm",
@@ -280,7 +280,7 @@ We differentiate between 2 types of nodes: *enqueuer nodes* (represented as the 
 
 Each enqueuer node corresponds to an enqueuer. Each time the local SPSC is enqueued with a value, the enqueuer timestamps the value using a distributed counter shared by all enqueuers. An enqueuer node stores the SPSC local to the corresponding enqueuer and a `min_timestamp` value which is the minimum timestamp inside the local SPSC.
 
-Each tree node stores the rank of an enqueuer process. This rank corresponds to the enqueuer node with the minimum timestamp among the node's children's ranks. The tree node that's attached to an enqueuer node is called a *leaf node*, otherwise, it's called an *internal node*.
+Each tree node stores the rank of an enqueuer process. This rank corresponds to the enqueuer node with the minimum timestamp among the node's children's ranks. The tree node that is attached to an enqueuer node is called a *leaf node*, otherwise, it is called an *internal node*.
 
 Note that if a local SPSC is empty, the `min_timestamp` variable of the corresponding enqueuer node is set to `MAX_TIMESTAMP` and the corresponding leaf node's rank is set to `DUMMY_RANK`.
 
@@ -326,7 +326,7 @@ Below is the types utilized in dLTQueue.
 
 The shared variables in our LTQueue version are as follows.
 
-Note that we have described a very specific and simple way to organize the tree nodes in dLTQueue in a min-heap-like array structure hosted on the sole dequeuer. We will resume our description of the related tree-structure procedures `parent()` (@ltqueue-parent), `children()` (@ltqueue-children), `leafNodeIndex()` (@ltqueue-leaf-node-index) with this representation in mind. However, our algorithm doesn't strictly require this representation and can be substituted with other more-optimized representations & distributed placements, as long as the similar tree-structure procedures are supported.
+Note that we have described a very specific and simple way to organize the tree nodes in dLTQueue in a min-heap-like array structure hosted on the sole dequeuer. We will resume our description of the related tree-structure procedures `parent()` (@ltqueue-parent), `children()` (@ltqueue-children), `leafNodeIndex()` (@ltqueue-leaf-node-index) with this representation in mind. However, our algorithm does not strictly require this representation and can be substituted with other more-optimized representations & distributed placements, as long as the similar tree-structure procedures are supported.
 
 #pseudocode-list(line-numbering: none)[
   + *Shared variables*
@@ -443,7 +443,7 @@ Similarly, `children` returns all indices of the child tree nodes given the node
   ],
 ) <ltqueue-leaf-node-index>
 
-`leafNodeIndex` returns the index of the leaf node that's logically attached to the enqueuer node with rank `enqueuer_rank` as in @modified-ltqueue-tree.
+`leafNodeIndex` returns the index of the leaf node that is logically attached to the enqueuer node with rank `enqueuer_rank` as in @modified-ltqueue-tree.
 
 The followings are the enqueuer procedures.
 
@@ -570,7 +570,7 @@ node_t {timestamp == MAX ? DUMMY_RANK : Self_rank, old_version + 1})`
   ],
 ) <ltqueue-enqueue-refresh-leaf>
 
-The `refreshLeaf`#sub(`e`) procedure is responsible for updating the rank of the leaf node affected by the enqueue. It simply reads the value of `Min_timestamp` of the enqueuer node it's logically attached to (@line-ltqueue-e-refresh-leaf-read-timestamp) and CAS the leaf node's rank accordingly (@line-ltqueue-e-refresh-leaf-cas).
+The `refreshLeaf`#sub(`e`) procedure is responsible for updating the rank of the leaf node affected by the enqueue. It simply reads the value of `Min_timestamp` of the enqueuer node it is logically attached to (@line-ltqueue-e-refresh-leaf-read-timestamp) and CAS the leaf node's rank accordingly (@line-ltqueue-e-refresh-leaf-cas).
 
 The followings are the dequeuer procedures.
 
@@ -911,4 +911,4 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
   ],
 ) <slotqueue-refresh-dequeue>
 
-`refreshDequeue`'s responsibility is to refresh the timestamp of the just-dequeued enqueuer to notify the enqueuer of the dequeue. It first reads the old timestamp of the slot (@line-slotqueue-refresh-dequeue-read-slot) and the front element (@line-slotqueue-refresh-dequeue-read-front). If the SPSC is empty, the new timestamp is set to `MAX_TIMESTAMP`, otherwise, it's the front element's timestamp (@line-slotqueue-refresh-dequeue-calc-timestamp). It finally tries to CAS the slot with the new timestamp (@line-slotqueue-refresh-dequeue-cas).
+`refreshDequeue`'s responsibility is to refresh the timestamp of the just-dequeued enqueuer to notify the enqueuer of the dequeue. It first reads the old timestamp of the slot (@line-slotqueue-refresh-dequeue-read-slot) and the front element (@line-slotqueue-refresh-dequeue-read-front). If the SPSC is empty, the new timestamp is set to `MAX_TIMESTAMP`, otherwise, it is the front element's timestamp (@line-slotqueue-refresh-dequeue-calc-timestamp). It finally tries to CAS the slot with the new timestamp (@line-slotqueue-refresh-dequeue-cas).

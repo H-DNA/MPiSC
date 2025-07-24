@@ -6,7 +6,7 @@ Currently, performance-related properties are of our main focus.
 
 == Benchmarking metrics
 
-This section provides an overview of the metrics we're interested in our algorithms. Performance-wise, latency and throughput are the two most popular metrics. These metrics revolve around the concept of "task". In our context, a task is a single method call of an MPSC queue algorithm, e.g enqueue and dequeue. Note that in our discussion, any two tasks are independent. Roughly speaking, two tasks are independent if one does not need to depend on the output of another for it to finish or there doesn't exist a bigger task that needs to depend on the output of the tasks. This rules out pipeline parallelism, where a task needs to wait for the output of a preceding task, and data parallelism, where a big task is split into and needs to wait for the outputs of multiple smaller tasks.
+This section provides an overview of the metrics we are interested in our algorithms. Performance-wise, latency and throughput are the two most popular metrics. These metrics revolve around the concept of "task". In our context, a task is a single method call of an MPSC queue algorithm, e.g enqueue and dequeue. Note that in our discussion, any two tasks are independent. Roughly speaking, two tasks are independent if one does not need to depend on the output of another for it to finish or there does not exist a bigger task that needs to depend on the output of the tasks. This rules out pipeline parallelism, where a task needs to wait for the output of a preceding task, and data parallelism, where a big task is split into and needs to wait for the outputs of multiple smaller tasks.
 
 === Throughput
 
@@ -16,7 +16,7 @@ Throughput is number of operations finished in a unit of time. Its unit is often
 
 Latency is the time it takes for a single task to complete. Its unit is often given as $"s"\/"op"$ (seconds per operation), $"ms"\/"op"$ (milliseconds per operation) or $"us"\/"op"$ (microseconds per operation).
 
-Intuitively, to optimize latency, one should minimize the number of execution steps required by a task. Therefore, it's obvious that optimizing for latency is much clearer than optimizing for throughput.
+Intuitively, to optimize latency, one should minimize the number of execution steps required by a task. Therefore, it is obvious that optimizing for latency is much clearer than optimizing for throughput.
 
 In concurrent algorithms, multiple tasks are executed by multiple processes. The key observation is that, if we fix the number of processes, the lower the average latency of a task, the larger the number of tasks that can be completed by a process, which implies a higher throughput. Therefore, a good latency often (but not always) implies a good throughput.
 
@@ -98,6 +98,6 @@ The most evident thing is that @total-benchmark and @dequeue-throughput-benchmar
 
 For enqueue latency and throughput, dLTQueue performs far better than dLTQueue while being slightly better than AMQueue. This is in line with our theoretical projection in @summary-of-distributed-mpscs. One concerning trend is that Slotqueue's enqueue throughput seems to degrade with the number of nodes, which signals a potential scalability problem. This is problematic further in that our theoretical model suggests that the cost of enqueue is always fixed. This is to be investigated further in the future.
 
-For dequeue latency and throughput, Slotqueue and AMQueue can quite match each other, while being better than dLTQueue. This is expected, agreeing with our projection of dequeue wrapping overhead in @summary-of-distributed-mpscs. Furthermore, Slotqueue is conceived as a more dequeuer-optimized version of dLTQueue. Based on this empirical result, it's reasonable to believe this is to be the case. Unlike enqueue, dequeue latency of Slotqueue seems to be quite stable, increasing very slowly. Because the dequeuer is the bottleneck of an MPSC, this is a good sign for the scalability of Slotqueue.
+For dequeue latency and throughput, Slotqueue and AMQueue can quite match each other, while being better than dLTQueue. This is expected, agreeing with our projection of dequeue wrapping overhead in @summary-of-distributed-mpscs. Furthermore, Slotqueue is conceived as a more dequeuer-optimized version of dLTQueue. Based on this empirical result, it is reasonable to believe this is to be the case. Unlike enqueue, dequeue latency of Slotqueue seems to be quite stable, increasing very slowly. Because the dequeuer is the bottleneck of an MPSC, this is a good sign for the scalability of Slotqueue.
 
 In conclusion, based on @total-benchmark, Slotqueue seems to perform better than dLTQueue and AMQueue in terms of both enqueue and dequeue operations, latency-wise and throughput-wise. The overhead of logarithmic-order number of remote operations in dLTQueue seems to be costly, adversely affecting its performance when the number of nodes increases. Additionally, compared to AMQueue, dLTQueue and Slotqueue also have the advantage of fault-tolerance, which due to the blocking nature of AMQueue, cannot be promised.

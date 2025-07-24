@@ -63,7 +63,7 @@ The purpose of timestamping is to determine the order to dequeue the items from 
 
 To dequeue, the dequeuer simply looks at the root node to determine the rank of the enqueuer to dequeue its SPSC.
 
-The fundamental idea contributes to LTQueue's wait-freedom is the wait-free timestamp-propagation procedure. If there's a change to an enqueuer's SPSC, the timestamp of any nodes that lie on the path from the enqueuer to the root node are refreshed. The timestamp-refreshing procedure is simple:
+The fundamental idea contributes to LTQueue's wait-freedom is the wait-free timestamp-propagation procedure. If there is a change to an enqueuer's SPSC, the timestamp of any nodes that lie on the path from the enqueuer to the root node are refreshed. The timestamp-refreshing procedure is simple:
 + Call load-link on the node's `(timestamp, rank)`.
 + Look at all the timestamps of the node's children and determine the minimum timestamp and its owner rank.
 + Call store-conditional to store the new minimum timestamp and the new owner rank to the current node.
@@ -138,7 +138,7 @@ Like DQueue, Jiffy represents the queue as a doubly-linked list of segments as i
 
 To enqueue, each enqueuer would FAA the Tail to reserve a slot. If the slot isn't in the linked list yet, it tries to allocate new segments and CAS them at the end of the linked list until the slot is available. It then traverses to the desired segment by following the previous pointers starting from the last segment. It then writes the data and sets the slot's state to `SET`. Notice that `EMPTY` slots actually have two substates. If an `EMPTY` slot is before the Tail index, that slot is actually reserved by an enqueuer but has not been set yet, while the `EMPTY` slots after the Tail index are truly empty.
 
-To dequeue, the dequeuer would start from the Head index of the first segment, scanning until it finds the first non-`HANDLED` slot before the end of the queue. If there's no such slot, the queue is empty and the dequeuer would return nothing. If this slot is `SET`, it simply reads the data item in this slot and sets it to `HANDLED`. If this slot is `EMPTY`, that means this slot has been reserved by an enqueuer that hasn't finished. In this case, the dequeuer performs a scan forward to find the first `SET` slot. If not found, the dequeuer returns nothing. Otherwise, it continues to repeatedly scan all slots between the first non-`HANDLED` and the last found `SET` slot until the first `SET` slot between in this interval is unchanged between 2 scans. Only then, the dequeuer would return the data item in this `SET` slot and mark it as `HANDLED`.
+To dequeue, the dequeuer would start from the Head index of the first segment, scanning until it finds the first non-`HANDLED` slot before the end of the queue. If there is no such slot, the queue is empty and the dequeuer would return nothing. If this slot is `SET`, it simply reads the data item in this slot and sets it to `HANDLED`. If this slot is `EMPTY`, that means this slot has been reserved by an enqueuer that has not finished. In this case, the dequeuer performs a scan forward to find the first `SET` slot. If not found, the dequeuer returns nothing. Otherwise, it continues to repeatedly scan all slots between the first non-`HANDLED` and the last found `SET` slot until the first `SET` slot between in this interval is unchanged between 2 scans. Only then, the dequeuer would return the data item in this `SET` slot and mark it as `HANDLED`.
 
 Similar to DQueue, CAS is only used when appending new segments at the end of the queue. Therefore, ABA problem only involves internal manipulation of pointers to dynamically-allocated memory. Consequently, if a proper memory reclamation scheme is utilized, ABA problem is also properly solved.
 
@@ -152,12 +152,12 @@ Out of the 4 investigated MPSC queue algorithms, we quickly eliminate DQueue, WR
 
 This section summarizes to the best of our knowledge existing MPSC queue algorithms, which is reflected in @dmpsc-related-works.
 
-The only paper we have found so far that either mentions directly or indirectly the design of an MPSC queue is @amqueue. @amqueue introduces a hosted blocking (the original paper claims that it's lock-free) bounded distributed MPSC queue called active-message queue (AMQueue) that bares resemblance to WRLQueue in @wrlqueue.
+The only paper we have found so far that either mentions directly or indirectly the design of an MPSC queue is @amqueue. @amqueue introduces a hosted blocking (the original paper claims that it is lock-free) bounded distributed MPSC queue called active-message queue (AMQueue) that bares resemblance to WRLQueue in @wrlqueue.
 
 #figure(
   kind: "table",
   supplement: "Table",
-  caption: [Characteristic summary of existing distributed MPSC queues. #linebreak() $R$ stands for remote operations and $L$ stands for local operations. #linebreak() (\*) @amqueue claims that it's lock-free.],
+  caption: [Characteristic summary of existing distributed MPSC queues. #linebreak() $R$ stands for remote operations and $L$ stands for local operations. #linebreak() (\*) @amqueue claims that it is lock-free.],
   table(
     columns: (1fr, 2fr),
     table.header(
