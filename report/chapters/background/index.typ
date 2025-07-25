@@ -2,7 +2,11 @@
 
 = Background <background>
 
+This chapter provides various information about the terminology references somewhere in this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, we first discuss two irregular applications in @irregular-applications. Next, we discuss about what it means for a concurrent algorithm to be correct @correctness-condition and the progress guarantee characteristics of concurrent algorithms @progress-guarantee. We will find out that we want to design linearizable non-blocking MPSC queues. We discuss the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arises such as ABA problem and safe memory reclamation in @issues. We finally introduce the practical libraries to help us realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
+
 == Irregular applications <irregular-applications>
+
+MPSC queues (@mpsc-queue) and therefore, their applications are of the class of irregular applications. Therefore, we first discuss irregular applications in this section.
 
 Irregular applications are a class of programs particularly interesting in distributed computing. They are characterized by:
 - Unpredictable memory access: Before the program is actually run, we cannot know which data it will need to access. We can only know that at run time.
@@ -39,7 +43,7 @@ The fan-out/fan-in pattern exhibits less irregularity than the actor model, howe
 
 We have seen the role MPSC queues play in supporting irregular applications. It is important to understand what really comprises an MPSC queue data structure.
 
-== MPSC queue
+== MPSC queue <mpsc-queue>
 
 Multi-producer, single-consumer (MPSC) queue is a specialized concurrent first-in first-out (FIFO) data structure. A FIFO is a container data structure where items can be inserted into or taken out of, with the constraint that the items that are inserted earlier are taken out earlier. Hence, it is also known as the queue data structure. The process that performs item insertion into the FIFO is called the producer and the process that performs item deletion (and retrieval) is called the consumer.
 
@@ -50,7 +54,7 @@ The reasons we are interested in MPSC queues instead of the more general multi-p
 - Data-dependent control flow: The consumer's behavior is entirely dependent on whether and which data is available in the MPSC queue. The execution paths of MPSC queues can vary, based on the queue contention i.e. some processes may back off or retry some failed operations; this scenario often arises in lock-free data structures.
 As an implication, some irregular applications can actually "push" the "irregularity burden" to the distributed MPSC queue, which is already designed for high performance and fault tolerance. This provides a comfortable level of abstraction for programmers that need to deal with irregular applications.
 
-== Correctness condition of concurrent algorithms
+== Correctness condition of concurrent algorithms <correctness-condition>
 
 Correctness of concurrent algorithms is hard to define, regarding the semantics of concurrent data structures like MPSC queues. One effort to formalize the correctness of concurrent data structures is the definition of *linearizability*. A method call on the FIFO can be visualized as an interval spanning two points in time. The starting point is called the *invocation event* and the ending point is called the *response event*. *Linearizability* informally states that each method call should appear to take effect instantaneously at some moment between its invocation event and response event @art-of-multiprocessor-programming. The moment the method call takes effect is termed the *linearization point*. Specifically, suppose the following:
 - We have $n$ concurrent method calls $m_1$, $m_2$, ..., $m_n$.
@@ -182,7 +186,7 @@ Exceptional events that can cause the store-conditional to fail spuriously inclu
 
 LL/SC even though as powerful as CAS, is not as widespread as CAS; in fact, as of MPI-3, only CAS is supported.
 
-== Common issues when designing non-blocking algorithms
+== Common issues when designing non-blocking algorithms <issues>
 
 === ABA problem <ABA-problem>
 
@@ -446,7 +450,7 @@ In *passive target synchronization*, any RMA communication calls must be within 
 // Historically, MPI as a message passing framework is often used in combination with other shared-memory frameworks such as OpenMP or pthreads to optimize communication within processes in a node. MPI-3 SHM (shared memory) is a capability introduced in MPI-3 to optimize intra-node communication within MPI RMA windows. This leads to the rise of MPI+MPI approach in distributed programming @zhou. In MPI-3, *shared-memory windows* can be created via `MPI_Win_allocate_shared`. Shared memory windows can be used for both one-sided communication and shared memory access. Besides using MPI-RMA facilities for communication and synchronization in these *shared-memory windows*, other communication and synchronization mechanisms provided by other shared-memory frameworks such as C++11 atomics can also be used. Typically, C++11 atomics allows for much more efficient communication and synchronization compared to MPI-RMA. Therefore, MPI-3 SHM can be used as an optimization for intra-node communication within MPI RMA programs. A general approach in using shared memory windows with traditional MPI RMA is discussed further in @zhou.
 //
 
-== Pure MPI - A porting approach of shared memory algorithms to distributed algorithms
+== Pure MPI - A porting approach of shared memory algorithms to distributed algorithms <pure-mpi>
 
 // === Pure MPI
 
@@ -523,3 +527,6 @@ An example of our pure MPI approach with `MPI_Win_lock_all`/`MPI_Win_unlock_all`
 // === MPI+MPI with C++11
 //
 // As discussed in the previous section, we can use C++11 atomics and synchronization facilities inside shared-memory windows. @mpi-cpp has shown this approach has the potential to obtain significant speedups compared to pure MPI.
+
+== BCL CoreX <bclx-library>
+
