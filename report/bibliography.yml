@@ -227,3 +227,93 @@ amqueue:
   page-range: 47-56
   serial-number:
     doi: 10.1109/ExaMPI49596.2019.00011
+
+commodity-supercomputer:
+  type: article
+  title: "Cluster computing: the commodity supercomputer"
+  author: ["Baker, Mark", "Buyya, Rajkumar"]
+  volume: 29
+  page-range: 551-576
+  date: 1999
+  publisher: Wiley Online Library
+  journal: "Software: Practice and Experience"
+
+actor-model-paper:
+  type: article
+  author: ["Hewitt, Carl", "Bishop, Peter", "Steiger, Richard"]
+  title: "A universal modular ACTOR formalism for artificial intelligence"
+  date: 1973
+  publisher: "Morgan Kaufmann Publishers Inc."
+  address: "San Francisco, CA, USA"
+  booktitle: "Proceedings of the 3rd International Joint Conference on Artificial Intelligence"
+  page-range: 235–245
+  page-total: 11
+  location: Stanford, USA
+  series: IJCAI'73
+
+fan-out-fan-in-paper:
+  type: article
+  title: "Concurrency Patterns in Golang: Real-World Use Cases and Performance Analysis"
+  author: "Malhotra, Arjun"
+  journal: "Journal of Computer Science and Technology Studies"
+  volume: 7
+  number: 6
+  page-range: 782-788
+  date: 2025
+
+favorable-characteristics-of-distributed-systems:
+  type: book
+  author: "Mullender, Sape"
+  title: "Distributed systems"
+  date: 1990
+  serial-number:
+    isbn: 0201416603
+  publisher: Association for Computing Machinery
+  address: New York, NY, USA
+
+nature-of-progress:
+  type: article
+  author: ["Herlihy, Maurice", "Shavit, Nir"]
+  title: "On the Nature of Progress"
+  date: 2011
+  publisher: "Springer Berlin Heidelberg"
+  address: "Berlin, Heidelberg"
+  page-range: 313-328
+  serial-number:
+    isbn: "978-3-642-25873-2"
+
+concurrent-ds:
+  type: article
+  author: ["Ellen, Faith", "Brown, Trevor"]
+  title: "Concurrent Data Structures"
+  date: 2016
+  serial-number:
+    isbn: 9781450339643
+    doi: "10.1145/2933057.2933123"
+  publisher: Association for Computing Machinery
+  address: New York, NY, USA
+  booktitle: "Proceedings of the 2016 ACM Symposium on Principles of Distributed Computing"
+  page-range: 151–153
+  page-total: 3
+  location: Chicago, Illinois, USA
+  series: "PODC '16"
+
+hcl:
+  type: article
+  author: ["Devarajan, Hariharan", "Kougkas, Anthony", "Bateman, Keith", "Sun, Xian-He"]
+  booktitle: "2020 IEEE International Conference on Cluster Computing (CLUSTER)"
+  title: "HCL: Distributing Parallel Data Structures in Extreme Scales"
+  date: 2020
+  page-range: 248-258
+  serial-number:
+    doi: 10.1109/CLUSTER49012.2020.00035
+
+atomic-objects:
+  type: article
+  title: "Paving the way for Distributed Non-Blocking Algorithms and Data Structures in the Partitioned Global Address Space model"
+  serial-number:
+    doi: "10.1109/ipdpsw50202.2020.00111"
+  booktitle: "2020 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW)"
+  author: ["Dewan, Garvit", "Jenkins, Louis"]
+  date: 2020
+  page-range: 659–666

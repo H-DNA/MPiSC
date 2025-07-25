@@ -1,7 +1,5 @@
 = Preliminary results <result>
 
-= Benchmarking
-
 This section introduces our benchmarking process, including our setup, environment, metrics of interest, and our microbenchmark program. Most importantly, we showcase the preliminary results on how well our novel algorithms perform, especially Slotqueue. We conclude this section with a discussion about the implications of these results.
 
 Currently, performance-related properties are our main focus.
@@ -99,8 +97,6 @@ We run the producer-consumer microbenchmark on 1 to 4 nodes to measure both the 
 ) <total-benchmark>
 
 Here is the corrected version of the provided Typst paragraphs with grammatical and spelling mistakes fixed, while keeping line breaks, wordings, and meanings intact:
-
-= Benchmarking Results (continued)
 
 The most evident thing is that @total-benchmark and @dequeue-throughput-benchmark are almost identical. This supports our claim that in an MPSC queue, the performance is bottlenecked by the dequeuer.
 

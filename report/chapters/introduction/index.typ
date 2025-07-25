@@ -4,47 +4,28 @@
 
 This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues", based on which we set out the objectives and scope of this study. To summarize, we then come to the formulation of our research question and give a high-level overview of the thesis. We end this chapter with a brief description of the structure of the rest of this document.
 
-== Motivation
+== Motivation <motivation>
 
-The demand for computation power has been increasing relentlessly. Increasingly complex computation problems arise and accordingly more computation power is required to solve them. Much engineering effort has been put forth toward obtaining more computation power. A popular topic in this regard is distributed computing: The combined power of clusters of commodity hardware can surpass that of a single powerful machine. To fully take advantage of the potential of distributed computing, specialized distributed algorithms and data structures need to be devised. Hence, there exists a variety of programming environments and frameworks that directly support the execution and development of distributed algorithms and data structures, one of which is the Message Passing Interface (MPI).
+The demand for computation power has been increasing relentlessly. Increasingly complex computation problems arise and accordingly more computation power is required to solve them. Much engineering effort has been put forth toward obtaining more computation power. A popular topic in this regard is distributed computing: The combined power of clusters of commodity hardware can surpass that of a single powerful machine @commodity-supercomputer.
 
-Traditionally, distributed algorithms and data structures use the usual Send/Receive message passing interface to communicate and synchronize between cluster nodes. Meanwhile, in the shared memory literature, atomic instructions are the preferred methods for communication and synchronization. This is due to the historical differences between the architectural support and programming models utilized in these two areas. For a class of problems known as regular applications, the use of the traditional Send/Receive interface suffices. However, this interface poses a challenge for irregular applications (@irregular-applications). Fortunately, since the introduction of specialized networking hardware such as RDMA and the improved support of the remote memory access (RMA) programming model in MPI-3, this challenge has been alleviated: irregular applications can now be expressed more conveniently with an API that is similar to atomic operations in shared memory programming. This also implies that shared-memory algorithms and data structures can be ported to distributed environments in a more straightforward manner. Since the design and development of shared-memory algorithms and data structures have been extensively studied, this has opened up a lot of new research such as @bclx on applying the principles of the shared memory literature to distributed computing.
+To harness the power of distributed systems, specialized algorithms and data structures need to be devised. Two especially important properties of distributed systems are performance and fault tolerance @favorable-characteristics-of-distributed-systems. Therefore, the algorithms and data structures running on distributed systems need to be highly efficient and fault tolerant. Regarding efficiency, we are concerned with the algorithms' throughput and latency, which are the two main metrics to measure performance. Considering fault tolerance, we are especially interested in the progress guarantee @art-of-multiprocessor-programming characteristic of the algorithms. The progress guarantee criterion divides the algorithms into two groups: blocking and non-blocking. Blocking algorithms allow one faulty process to delay the other processes forever, which is not fault tolerant @nature-of-progress. Non-blocking algorithms are safeguarded against this problem, exhibiting a higher degree of fault tolerance @concurrent-ds.
 
-Concurrent multi-producer single-consumer (MPSC) queue is one of those data structures that have seen many applications in shared-memory environments and plays the central role in many programming patterns, such as the actor model and the fan-out/fan-in pattern, as shown in @mpsc-patterns.
+One of the algorithms that has seen applications in the distributed domain is the multi-producer, single-consumer (MPSC) queue algorithm @amqueue. Furthermore, there are applications and programming patterns in the shared-memory domain that can potentially see similar usage in the distributed domain, such as the actor model @actor-model-paper or the fan-out fan-in pattern @fan-out-fan-in-paper. Although the more general multi-producer, multi-consumer (MPMC) queues suffice for the MPSC workloads, they are typically too expensive for these use cases @wrlqueue @dqueue. Therefore, supporting a specialized non-blocking distributed MPSC queue is still valuable.
 
-#subpar.grid(
-  figure(
-    image("../../static/images/actor_model.png"),
-    caption: [
-      Actor model.
-    ],
-  ),
-  <actor-model>,
-  figure(
-    image("../../static/images/fan-out_fan-in.png"),
-    caption: [
-      Fan-out/Fan-in pattern.
-    ],
-  ),
-  <fan-out-fan-in-pattern>,
-  columns: (1fr, 1fr),
-  caption: [Some programming patterns involving the MPSC queue data structure.],
-  label: <mpsc-patterns>,
-)
+However, currently in the literature, there is only one distributed MPSC queue, AMQueue @amqueue. Moreover, even though the author claims that AMQueue is non-blocking, we found that AMQueue is actually blocking (@dmpsc-related-works). This is unlike the shared-memory domain, where there are a lot more research on non-blocking MPSC queues @dqueue @ltqueue @wrlqueue @jiffy. This apparent gap between the two domains have been bridged by some recent research to adapt non-blocking shared-memory algorithms to distributed environments @bcl @bclx @hcl @atomic-objects.
+The work by @atomic-objects introduces a method for creating non-blocking distributed data structures within the partitioned global address space (PGAS) framework, particularly targeting the Chapel programming language. However, their methodology faces a significant limitation: it relies on double-word compare-and-swap (DCAS) or 128-bit compare-and-swap (CAS) operations to prevent ABA problems, which lack support from most remote direct memory access (RDMA) hardware systems @atomic-objects.
+The HCL framework @hcl provides a distributed data structure library built on RPC over RDMA technology. While functional, this approach demands specialized hardware capabilities from contemporary network interface cards, limiting its portability @bclx. BCL Core @bcl presents a highly portable solution capable of interfacing with multiple distributed programming backends including MPI, SHMEM, and GASNet-EX. However, BCL Core's architecture incorporates 128-bit pointers, creating the same RDMA hardware compatibility issues as @atomic-objects.
+For our research, we have selected BCL CoreX @bclx and adopted its design philosophy to adapt existing shared-memory MPSC queues for distributed computing environments. BCL CoreX @bclx extends the original BCL @bcl framework with enhanced features that simplify the development of non-blocking distributed data structures. A key innovation in their approach is the implementation of 64-bit pointers, which are compatible with virtually all large-scale computing clusters and supported by most RDMA hardware configurations. To address ABA problems without relying on specialized instructions like DCAS, they have developed a distributed hazard pointer mechanism. This generic solution provides sufficient portability and flexibility to accommodate the adaptation of most existing non-blocking shared-memory data structures to distributed environments.
 
-In the actor model, each process or compute node is represented as an actor. Each actor has a mailbox, which exhibits MPSC queue property: Other actors can send messages to the mailbox and the owner actor extracts messages and performs computation based on these messages. The fan-out/fan-in pattern involves splitting a task into multiple subtasks to workers, then the workers queue back the result to a result queue owned by another worker, who dequeues the results to perform further processing, such as aggregation. These patterns can be potentially useful if they can be expressed efficiently in distributed environments. However, we have found discussions of distributed MPSC queue algorithms in the current literature to be very scarce and scattered and as far as we know, none has really focused on designing a general-purpose distributed MPSC queue. The closest we found is the Berkeley Container Library (BCL) @bcl that provides many general-purpose distributed data structures including a multi-producer multi-consumer (MPMC) queue and multi-producer/multi-consumer (MP/MC) queue, but sadly, no data structure for the specialized MPSC queue, while @amqueue discusses the design of a distributed multi-producer single-consumer (MPSC) queue specifically designed to support a pattern of message exchange. This presents an inhibition to programmers who want to either directly use the distributed MPSC queues or express programming patterns that inherently exhibit MPSC queue behaviors; they either have to work around the requirement or remodel their problems in another way. If a distributed MPSC queue is also provided as part of a library, this can in turn encourage many distributed applications and programming patterns that utilize the MPSC queues.
-
-A desirable distributed MPSC queue algorithm should possess two favorable characteristics (1) scalability, the ability of an algorithm to utilize the highly concurrent nature of distributed clusters (2) fault tolerance, the ability of an algorithm to continue running despite the failure of some compute nodes. Scalability is important for any concurrent algorithms, as one would never want to add more compute nodes just for performance to drop. Fault tolerance, on the other hand, is especially more important in distributed computing, as failures can happen more frequently, such as network failures, node failures, etc. Fault tolerance is concerned with a class of properties arising in concurrent algorithms known as progress guarantee (@progress-guarantee). Non-blocking is a class of progress guarantee that ensures that the failure of one process does not cause the failure of the others.
-
-Non-blocking MPSC queues and other FIFO variants, such as multi-producer multi-consumer (MPMC) queue, single-producer single-consumer (SPSC) queue, have been heavily studied in the shared memory literature, dating back from the 1980s-1990s @valois @lamport-leslie @michael-scott and more recently @ltqueue @jiffy. It comes as no surprise that non-blocking algorithms in this domain are highly developed and optimized for performance and scalability. However, most research about distributed algorithms and data structures in general completely disregards the available state-of-the-art algorithms in the shared memory literature. Because shared-memory algorithms can now be straightforwardly ported to distributed context using this programming model, this presents an opportunity to make use of the highly accumulated research in the shared memory literature, which if adapted and mapped properly to the distributed context, may produce comparable results to algorithms exclusively devised within the distributed computing domain. Therefore, we decide to take this novel route to developing new non-blocking MPSC queue algorithms: Utilizing shared-memory programming techniques, adapting potential lock-free shared-memory MPSCs to design fault-tolerant and performant distributed MPSC queue algorithms. If this approach proves to be effective, a huge intellectual reuse of the shared-memory literature into the distributed domain is possible. Consequently, there may be no need to develop distributed MPSC queue algorithms from the ground up.
+In summary, we focus on the design of efficient non-blocking distributed MPSC queues using the BCL CoreX library as the main implementation framework. The next few sections will list the objectives in more details (@objective, @scope), sum them up in a research question (@research-question) and an overview picture of the thesis (@overview).
 
 == Objective <objective>
 
-Based on what we have listed out in the previous section, we aim to:
+Based on what we have listed out in @motivation, we aim to:
 - Investigate the principles underpinning the design of fault-tolerant and performant shared-memory algorithms.
 - Investigate state-of-the-art shared-memory MPSC queue algorithms as case studies to support our design of distributed MPSC queue algorithms.
 - Investigate existing distributed MPSC algorithms to serve as a comparison baseline.
-- Model and design distributed MPSC queue algorithms using techniques from the shared-memory literature.
+- Model and design distributed MPSC queue algorithms using techniques from the shared-memory literature, specifically the BCL CoreX library.
 - Utilize the shared-memory programming model to evaluate various theoretical aspects of distributed MPSC queue algorithms: correctness and progress guarantee.
 - Model the theoretical performance of distributed MPSC queue algorithms that are designed using techniques from the shared-memory literature.
 - Collect empirical results on distributed MPSC queue algorithms and discuss important factors that affect these results.
@@ -59,7 +40,7 @@ The following narrows down what we are going to investigate in the shared-memory
 - Regarding algorithm prototyping, benchmarking and optimizations, we assume an MPI-3 setting.
 - Regarding empirical results, we focus on performance-related metrics, e.g. throughput and latency.
 
-== Research question
+== Research question <research-question>
 
 Any research effort in this thesis revolves around this research question:
 
@@ -71,7 +52,7 @@ We further decompose this question into smaller subquestions:
 + Which shared-memory programming principles are relevant in modeling and designing distributed MPSC queue algorithms in a fault-tolerant and performant manner?
 + Which shared-memory programming principles need to be modified to more effectively model and design distributed MPSC queue algorithms in a fault-tolerant and performant manner?
 
-== Thesis overview
+== Thesis overview <overview>
 
 An overview of this thesis is given in @thesis-overview.
 
@@ -96,7 +77,7 @@ This thesis concludes with an empirical analysis of our novel algorithms to see 
 
 The rest of this report is structured as follows:
 
-@background[] discusses the theoretical foundation this thesis is based on. As mentioned, this thesis investigates the principles of shared-memory programming and the existing state-of-the-art shared-memory MPSC queues. We then explore the utilities offered by MPI-3 to implement distributed algorithms modeled by shared-memory programming techniques.
+@background[] discusses the theoretical foundation this thesis is based on. As mentioned, this thesis investigates the principles of shared-memory programming and the existing state-of-the-art shared-memory MPSC queues. We then explore the utilities offered by MPI-3 and BCL CoreX to implement distributed algorithms modeled by shared-memory programming techniques.
 
 @related-works[] surveys the shared-memory literature for state-of-the-art queue algorithms, specifically MPSC queues. We specifically focus on non-blocking shared-memory algorithms that have the potential to be adapted efficiently for distributed environments. This chapter additionally surveys existing distributed MPSC algorithms to serve as a comparison baseline for our novel distributed MPSC queue algorithms.
 
