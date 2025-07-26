@@ -432,6 +432,8 @@ Solutions to this problem must ensure that memory is only freed when no other pr
 
 == MPI-3 - A popular distributed programming library interface specification <mpi>
 
+To implement the design linearizable non-blocking distributed MPSC queues, the most basic choice we can go with is MPI, which will be the matter of this section. We specifically focus on the MPI-3 RMA API, because as will be explained, it facilitates the easy implementation of irregular applications such as MPSC queues. An approach of using MPI-3 RMA is covered in @pure-mpi. More advanced implementation techniques will be covered in @bclx-library.
+
 MPI stands for message passing interface, which is a *message-passing library interface specification*. Design goals of MPI include high availability across platforms, efficient communication, thread safety, reliable and convenient communication interface while still allowing hardware-specific accelerated mechanisms to be exploited @mpi-3.1.
 
 === MPI-3 RMA
@@ -461,6 +463,8 @@ In *passive target synchronization*, any RMA communication calls must be within 
 //
 
 == Pure MPI - A porting approach of shared memory algorithms to distributed algorithms <pure-mpi>
+
+With MPI (@mpi), we have the most basic facility to adapt shared-memory algorithms to distributed algorithms, which is MPI-3 RMA. However, MPI-3 RMA offer a wide range of utilities, which may not be quite well-suited to implement non-blocking distributed MPSC queues. In this section, we introduce one technique utilizing MPI-3 RMA to implement distributed non-blocking distributed algorithms. The BCL CoreX library (@bclx-library) is built on top of this approach.
 
 // === Pure MPI
 
@@ -539,4 +543,6 @@ An example of our pure MPI approach with `MPI_Win_lock_all`/`MPI_Win_unlock_all`
 // As discussed in the previous section, we can use C++11 atomics and synchronization facilities inside shared-memory windows. @mpi-cpp has shown this approach has the potential to obtain significant speedups compared to pure MPI.
 
 == BCL CoreX <bclx-library>
+
+BCL CoreX is a high-level library built on top of MPI to facilitate the design of non-blocking algorithms for distributed-memory machines. In principle, it utilizes the pure MPI approach that we have covered in @pure-mpi.
 
