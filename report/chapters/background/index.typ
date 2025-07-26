@@ -2,7 +2,7 @@
 
 = Background <background>
 
-This chapter provides various information about the terminology references somewhere in this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, we first discuss two irregular applications in @irregular-applications. Next, we discuss about what it means for a concurrent algorithm to be correct @correctness-condition and the progress guarantee characteristics of concurrent algorithms @progress-guarantee. We will find out that we want to design linearizable non-blocking MPSC queues. We discuss the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arises such as ABA problem and safe memory reclamation in @issues. We finally introduce the practical libraries to help us realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
+This chapter provides various information about the terminology referenced throughout this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, we first discuss two irregular applications in @irregular-applications. Next, we discuss about what it means for a concurrent algorithm to be correct in @correctness-condition and the progress guarantee characteristics of concurrent algorithms in @progress-guarantee. From there, we decide to design linearizable non-blocking distributed MPSC queues. Therefore, we are concerned with the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arise in this design process such as ABA problem and safe memory reclamation problem in @issues. We finally introduce the practical libraries to help us realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
 
 == Irregular applications <irregular-applications>
 
