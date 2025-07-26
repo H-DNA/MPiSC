@@ -83,6 +83,6 @@ The rest of this report is structured as follows:
 
 @distributed-queues[] introduces our novel distributed MPSC queue algorithms, designed using shared-memory programming techniques and inspired by the selected shared-memory MPSC queue algorithms surveyed in @related-works[]. It specifically presents our adaptation efforts of existing algorithms in the shared-memory literature to make their distributed implementations feasible and efficient.
 
-@result[] details our benchmarking metrics and elaborates on our benchmarking setup. We aim to demonstrate some preliminary results on how well our novel MPSC queue algorithms perform, additionally compared to existing distributed MPSC queues. Finally, we discuss important factors that affect the runtime properties of distributed MPSC queue algorithms.
+@result[] details our benchmarking metrics and elaborates on our benchmarking setup. We aim to demonstrate results on how well our novel MPSC queue algorithms perform, additionally compared to existing distributed MPSC queues. Finally, we discuss important factors that affect the runtime properties of distributed MPSC queue algorithms.
 
 @conclusion[] concludes what we have accomplished in this thesis and considers future possible improvements to our research.
