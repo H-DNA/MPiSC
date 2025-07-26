@@ -899,7 +899,7 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
     booktabs: true,
     numbered-title: [`refreshDequeue(rank: int)` *returns* `bool`],
   )[
-    + #line-label(<line-slotqueue-refresh-dequeue-get-order>) `enqueuer_order = rank                                      `
+    + #line-label(<line-slotqueue-refresh-dequeue-get-order>) `enqueuer_order = rank                                                 `
     + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp>) `old_timestamp = timestamp_t {}`
     + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `aread_sync(&Slots, enqueuer_order, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-dequeue-init-front>) `front = (data_t {}, timestamp_t {})`
