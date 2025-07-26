@@ -317,3 +317,36 @@ atomic-objects:
   author: ["Dewan, Garvit", "Jenkins, Louis"]
   date: 2020
   page-range: 659–666
+
+feo2011irregular:
+  type: conference
+  title: "Irregular applications: architectures & algorithms"
+  author:
+    - Feo, John
+    - Villa, Oreste
+    - Tumeo, Antonino
+    - Secchi, Simone
+  date: 2011
+  parent:
+    type: proceedings
+    title: "Proceedings of the 1st Workshop on Irregular Applications: Architectures and Algorithms"
+    publisher: Association for Computing Machinery
+    location: New York, NY, USA
+    isbn: "9781450311212"
+  page-range: 1-2
+  serial-number:
+    doi: "10.1145/2089142.2089144"
+
+gropp2006advanced:
+  type: conference
+  title: "Advanced MPI: I/O and one-sided communication"
+  author:
+    - Gropp, William
+    - Lusk, Rusty
+    - Ross, Rob
+    - Thakur, Rajeev
+  date: 2006
+  parent:
+    type: proceedings
+    title: "Proc. ACM/IEEE Conf. Supercomput."
+  page-range: 202

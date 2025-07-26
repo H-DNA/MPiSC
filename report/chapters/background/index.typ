@@ -2,16 +2,16 @@
 
 = Background <background>
 
-This chapter provides various information about the terminology referenced throughout this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, we first discuss two irregular applications in @irregular-applications. Next, we discuss about what it means for a concurrent algorithm to be correct in @correctness-condition and the progress guarantee characteristics of concurrent algorithms in @progress-guarantee. From there, we decide to design linearizable non-blocking distributed MPSC queues. Therefore, we are concerned with the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arise in this design process such as ABA problem and safe memory reclamation problem in @issues. We finally introduce the practical libraries to help us realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
+This chapter provides various information about the terminology referenced throughout this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, we first discuss two irregular applications in @irregular-applications. Next, we decide what it means for a concurrent algorithm to be correct in @correctness-condition and the progress guarantee characteristics of concurrent algorithms in @progress-guarantee. From there, we decide to design linearizable non-blocking distributed MPSC queues. Therefore, we are concerned with the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arise in this design process such as ABA problem and safe memory reclamation problem in @issues. We finally introduce the practical libraries to help us realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
 
 == Irregular applications <irregular-applications>
 
-MPSC queues (@mpsc-queue) and therefore, their applications are of the class of irregular applications. Therefore, we first discuss irregular applications in this section.
+MPSC queue (@mpsc-queue) and its applications belong to a class called irregular applications. Designing irregular applications needs to take into account their special properties, which motivates @mpi, @pure-mpi, @bclx-library. Therefore, before we discuss MPSC queue in @mpsc-queue, we explain the term "irregular application" in this section.
 
-Irregular applications are a class of programs particularly interesting in distributed computing. They are characterized by:
+Irregular applications @feo2011irregular are a class of programs particularly interesting in distributed computing. They are characterized by:
 - Unpredictable memory access: Before the program is actually run, we cannot know which data it will need to access. We can only know that at run time.
 - Data-dependent control flow: The decision of what to do next (such as which data to access next) is highly dependent on the values of the data already accessed, hence the unpredictable memory access property because we cannot statically analyze the program to know which data it will access. The control flow is inherently engraved in the data, which is not known until runtime.
-Irregular applications are interesting because they demand special techniques to achieve high performance. One specific challenge is that this type of application is hard to model in traditional MPI APIs using the Send/Receive interface. This is specifically because using this interface requires a programmer to have already anticipated communication within pairs of processes before runtime, which is difficult with irregular applications. The introduction of MPI remote memory access (RMA) in MPI-2 and its improvement in MPI-3 has significantly improved MPI's capability to express irregular applications comfortably. This will be explained further in @mpi.
+Irregular applications are interesting because they demand special techniques to achieve high performance @feo2011irregular. One specific challenge is that this type of application is hard to model in traditional MPI APIs using the Send/Receive interface @gropp2006advanced. This is specifically because using this interface requires a programmer to have already anticipated communication within pairs of processes before runtime, which is difficult with irregular applications. The introduction of MPI remote memory access (RMA) in MPI-2 and its improvement in MPI-3 has significantly improved MPI's capability to express irregular applications comfortably @dinan. This will be explained further in @mpi.
 
 === Actor model as an irregular application
 
@@ -20,7 +20,7 @@ Irregular applications are interesting because they demand special techniques to
   caption: [Actor model visualization.],
 ) <remind-actor-model>
 
-The actor model in actuality is a type of irregular application supported by the concurrent MPSC queue data structure.
+The actor model @actor-model-paper in actuality is a type of irregular application supported by the concurrent MPSC queue data structure.
 
 Each actor can be a process or a compute node in the cluster, carrying out a specific responsibility in the system. From time to time, there is a need for the actors to communicate with each other. For this purpose, the actor model offers a mailbox local to each actor. This mailbox exhibits MPSC queue behavior: Other actors can send messages to the mailbox to notify the owner actor and the owner actor at their leisure repeatedly extracts messages from its mailbox. The actor model provides a simple programming model for concurrent processing.
 
@@ -35,7 +35,7 @@ The reasons why the actor model is an irregular application are straightforward 
   caption: [Fan-out/Fan-in pattern visualization.],
 ) <remind-fan-out-fan-in-model>
 
-The fan-out/fan-in pattern is another type of irregular application supported by the concurrent MPSC queue data structure.
+The fan-out/fan-in pattern @fan-out-fan-in-paper is another type of irregular application supported by the concurrent MPSC queue data structure.
 
 In this pattern, there is a big task that can be split into subtasks to be executed concurrently on some work nodes. In the execution process, each worker produces a result set, each enqueued back to a result queue located on an aggregation node. The aggregation node can then dequeue from this result queue to perform further processing. Clearly, this result queue exhibits MPSC behavior.
 
@@ -45,16 +45,20 @@ We have seen the role MPSC queues play in supporting irregular applications. It 
 
 == MPSC queue <mpsc-queue>
 
+Having established the notion of irregular applications in @irregular-applications, we can dicuss about our design goal, distributed MPSC queue, which is an irregular application itself, in this section. The design criteria will be detailed later, in @correctness-condition and @progress-guarantee.
+
 Multi-producer, single-consumer (MPSC) queue is a specialized concurrent first-in first-out (FIFO) data structure. A FIFO is a container data structure where items can be inserted into or taken out of, with the constraint that the items that are inserted earlier are taken out earlier. Hence, it is also known as the queue data structure. The process that performs item insertion into the FIFO is called the producer and the process that performs item deletion (and retrieval) is called the consumer.
 
 In concurrent queues, multiple producers and consumers can run concurrently. One class of concurrent FIFOs is the MPSC queue, where one consumer may run in parallel with multiple producers.
 
-The reasons we are interested in MPSC queues instead of the more general multi-producer, multi-consumer (MPMC) queue data structures are that (1) high-performance and high-scalability MPSC queues are much simpler to design than MPMCs while (2) MPSC queues are powerful enough to solve certain problems, as demonstrated in @irregular-applications. The MPSC queue in actuality is an irregular application in and of itself:
+The reasons we are interested in MPSC queues instead of the more general multi-producer, multi-consumer (MPMC) queue data structures are that (1) high-performance and high-scalability MPSC queues are much simpler to design than MPMCs while (2) MPSC queues are powerful enough to solve certain problems, as demonstrated in @irregular-applications. The MPSC queue in actuality is an irregular application in itself:
 - Unpredictable memory access: As a general data structure, the MPSC queue allows any process to enqueue and dequeue at any time. By nature, its memory access pattern is unpredictable.
 - Data-dependent control flow: The consumer's behavior is entirely dependent on whether and which data is available in the MPSC queue. The execution paths of MPSC queues can vary, based on the queue contention i.e. some processes may back off or retry some failed operations; this scenario often arises in lock-free data structures.
 As an implication, some irregular applications can actually "push" the "irregularity burden" to the distributed MPSC queue, which is already designed for high performance and fault tolerance. This provides a comfortable level of abstraction for programmers that need to deal with irregular applications.
 
 == Correctness condition of concurrent algorithms <correctness-condition>
+
+We have established our design goal in the previous sections (@irregular-applications, @mpsc-queue), that is MPSC queue. During this design process, we have to take into account its correctness, which is the subject of this section. The fault tolerance characteristic, although important, is less compared to correctness, and so will be deferred to @progress-guarantee.
 
 Correctness of concurrent algorithms is hard to define, regarding the semantics of concurrent data structures like MPSC queues. One effort to formalize the correctness of concurrent data structures is the definition of *linearizability*. A method call on the FIFO can be visualized as an interval spanning two points in time. The starting point is called the *invocation event* and the ending point is called the *response event*. *Linearizability* informally states that each method call should appear to take effect instantaneously at some moment between its invocation event and response event @art-of-multiprocessor-programming. The moment the method call takes effect is termed the *linearization point*. Specifically, suppose the following:
 - We have $n$ concurrent method calls $m_1$, $m_2$, ..., $m_n$.
@@ -70,6 +74,8 @@ Then, linearizability means that if we have $l_1 < l_2 < ... < l_n$, the effect 
 Linearizability is widely used as a correctness condition because of (1) its composability (if every component in the system is linearizable, the whole system is linearizable @herlihy-linearizability), which promotes modularity and ease of proof (2) its compatibility with human intuition, i.e. linearizability respects real-time order @herlihy-linearizability. Naturally, we choose linearizability to be the only correctness condition for our algorithms.
 
 == Progress guarantee of concurrent algorithms <progress-guarantee>
+
+A correct algorithms can still be prone to faults at runtime, which varies from a process experiences an unexpected delay in its execution to a process crashes indefinitely. Therefore, fault tolerance is also an important criteria for our design goal, distributed MPSC queue (@mpsc-queue), besides correctness (@correctness-condition). This section will introduce the concept of progress guarantee, which is highly linked with fault tolerance. The techniques to achieve fault tolerance are discussed in the next section (@atomic-instructions).
 
 Progress guarantee is a criterion that only arises in the context of concurrent algorithms. Informally, it is the degree of hindrance one process imposes on another process from completing its task. In the context of sequential algorithms, this is irrelevant because there is only ever one process. Progress guarantee has an implication on an algorithm's performance and fault tolerance, especially in adverse situations, as we will explain in the following sections.
 
@@ -117,6 +123,8 @@ Wait-freedom offers the strongest degree of progress guarantee. It mandates that
 ) <wait-free-algorithms>
 
 == Popular atomic instructions in designing non-blocking algorithms <atomic-instructions>
+
+As we have discussed in @progress-guarantee, blocking algorithms are not fault tolerant while non-blocking ones are, specifically lock-free and wait-free algorithms. Therefore, our design goal can be refined to linearizable non-blocking distributed MPSC queue. Techniques to achieve this is discussed next in this section. Issues, however, arise during the application of these techniques, whose resolution will be deferred to @issues.
 
 In non-blocking algorithms, finer-grained synchronization primitives than simple locks are required, which manifest themselves as atomic instructions. Therefore, it is necessary to get familiar with the semantics of these atomic instructions and common programming patterns associated with them.
 
@@ -188,6 +196,8 @@ LL/SC even though as powerful as CAS, is not as widespread as CAS; in fact, as o
 
 == Common issues when designing non-blocking algorithms <issues>
 
+Atomic instructions are the option we choose when it comes to designing non-blocking algorithms (@atomic-instructions). However, there are problems usually associated with this approach, that is ABA problem (@ABA-problem) and safe memory reclamation problem (@safe-memory-reclaim). Proper solutions to these issues are required to complete our design process, which has been discussed at length in @mpsc-queue, @correctness-condition, @progress-guarantee, @atomic-instructions. We move on to implementation techniques in section @mpi, @pure-mpi, @bclx.
+
 === ABA problem <ABA-problem>
 
 The ABA problem is a notorious problem associated with the compare-and-swap atomic instruction. Because CAS is so widely used in non-blocking algorithms, the ABA problem almost has to always be accounted for.
@@ -239,7 +249,7 @@ To safeguard against the ABA problem, one must ensure that between the time a pr
 
 A simple scheme that is widely used practically and also in this thesis is the *unique timestamp* scheme. This scheme's idea is simple: for each shared memory location that is affected by CAS operations, we reserve some bits of this memory location for a monotonic counter. Each time a CAS operation is carried out, this counter is incremented. Theoretically, the ABA problem would never happen because combining with this counter, the value of this memory location is always unique, due to the counter never repeating itself. However, practically, the counter can overflow and wrap around to the same value and the ABA problem would happen in this case. Therefore, the counter's range must be big enough so that this scenario can't virtually happen. Empirically, a counter of 32-bit should be enough. The drawback of this approach is that we have wasted 32 meaningful bits to avoid the ABA problem.
 
-=== Safe memory reclamation problem
+=== Safe memory reclamation problem <safe-memory-reclaim>
 
 The problem of safe memory reclamation often arises in concurrent algorithms that dynamically allocate memory. In such algorithms, dynamically-allocated memory must be freed at some point. However, there is a good chance that while a process is freeing memory, other processes contending for the same memory are keeping a reference to that memory. Therefore, deallocated memory can potentially be accessed, which is erroneous.
 
