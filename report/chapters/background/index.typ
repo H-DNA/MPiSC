@@ -210,7 +210,7 @@ As a reminder, here's how CAS is often utilized in non-blocking concurrent algor
 #subpar.grid(
   figure(
     image("../../static/images/ABA-problem-1.png"),
-    caption: [Process X wants to pop a value, it observes $"Top" = $ `A` and $"Top"->"next" = $ `C` then suspends.],
+    caption: [Process X wants to pop a value, it observes $"Top" =$ `A` and $"Top"->"next" =$ `C` then suspends.],
   ),
   <ABA-problem-case-1>,
   figure(
@@ -544,5 +544,35 @@ An example of our pure MPI approach with `MPI_Win_lock_all`/`MPI_Win_unlock_all`
 
 == BCL CoreX <bclx-library>
 
-BCL CoreX is a high-level library built on top of MPI to facilitate the design of non-blocking algorithms for distributed-memory machines. In principle, it utilizes the pure MPI approach that we have covered in @pure-mpi.
+BCL CoreX @bclx is a high-level library built on top of MPI to facilitate the design of non-blocking algorithms for distributed-memory machines. In principle, it utilizes the pure MPI approach that we have covered in @pure-mpi.
 
+A subset of the primitives provided by BCL CoreX is presented below. We will utilize these primitives in our algorithm specification.
+
+#pseudocode-list(line-numbering: none)[
+  + *`gptr<T>`*
+    + A global pointer that points to a variable of type `T`. A global pointer is one that can point to a variable outside of the current process's address space. The process whose address space a global pointer points to is called the _host_. Like normal pointers, pointer arithmetic also works with global pointers, which allows global pointers to point to remote arrays.
+]
+
+#pseudocode-list(line-numbering: none)[
+  + *`T read(gptr<T> ptr, T* dest)`*
+    + Issue a synchronous read on the location pointed to by `ptr` and stores the read value in `dest`.
+]
+
+#pseudocode-list(line-numbering: none)[
+  + *`T write(gptr<T> ptr, T* src)`*
+    + Issue a synchronous write on the location pointed to by `ptr` that writes the value stored in `src`.
+]
+
+#pseudocode-list(line-numbering: none)[
+  + *`T faa(gptr<T> ptr, T inc)`*
+    + Issue a synchronous fetch-and-add operation on the location pointed to by `ptr`.
+    + `T` must be an integral type of less than 64 bits.
+]
+
+#pseudocode-list(line-numbering: none)[
+  + *`T cas(gptr<T> ptr, T old_val, T new_val)`*
+    + Issue a synchronous compare-and-swap operation on the location pointed to by `ptr`.
+    + `T` must be a type of less than 64 bits.
+]
+
+A remote operation occurs when one of the primitive operations is applied on the global pointer that points to a non-local address space. Otherwise, a local operation occurs. Typically, remote operations are very expensive compared to local operations.

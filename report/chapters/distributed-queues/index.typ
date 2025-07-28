@@ -62,66 +62,7 @@ The characteristics of these MPSC queue wrappers are summarized in @summary-of-d
   ),
 ) <summary-of-distributed-mpscs>
 
-In the following sections, we present first the one-sided-communication primitives that we assume will be available in our distributed algorithm specification and then our proposed distributed MPSC queue wrappers in detail.
-
-In our description, we assume that each process in our program is assigned a unique number as an identifier, which is termed as its *rank*. The numbers are taken from the range of `[0, size - 1]`, with `size` being the number of processes in our program.
-
-== Distributed one-sided-communication primitives in our distributed algorithm specification
-
-Although we use MPI-3 RMA to implement these algorithms, the algorithm specifications themselves are not inherently tied to the MPI-3 RMA interface. For clarity and convenience in specification, we define the following distributed primitives used in our pseudocode.
-
-#pseudocode-list(line-numbering: none)[
-  + *`remote<T>`*
-    + A distributed shared variable of type T. The process that physically stores the variable in its local memory is referred to as the *host*. This represents data that can be accessed or modified remotely by other processes.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void aread_sync(remote<T> src, T* dest)`*
-    + Issue a synchronous read of the distributed variable `src` and stores its value into the local memory location pointed to by `dest`. The read is guaranteed to be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void aread_sync(remote<T*> src, int index, T* dest)`*
-    + Issue a synchronous read of the element at position `index` within the distributed array `src` (where `src` is a pointer to a remotely hosted array of type `T`) and stores the value into the local memory location pointed to by `dest`. The read is guaranteed to be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void awrite_sync(remote<T> dest, T* src)`*
-    + Issue a synchronous write of the value at the local memory location pointed to by `src` into the distributed variable `dest`. The write is guaranteed to be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void awrite_sync(remote<T*> dest, int index, T* src)`*
-    + Issue a synchronous write of the value at the local memory location pointed to by `src` into the element at position `index` within the distributed array `dest` (where `dest` is a pointer to a remotely hosted array of type `T`). The write is guaranteed to be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void aread_async(remote<T> src, T* dest)`*
-    + Issue an asynchronous read of the distributed variable `src` and initiate the transfer of its value into the local memory location pointed to by `dest`. The operation may not be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void aread_async(remote<T*> src, int index, T* dest)`*
-    + Issue an asynchronous read of the element at position `index` within the distributed array `src` (where `src` is a pointer to a remotely hosted array of type `T`) and initiate the transfer of its value into the local memory location pointed to by `dest`. The operation may not be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void awrite_async(remote<T> dest, T* src)`*
-    + Issue an asynchronous write of the value at the local memory location pointed to by `src` into the distributed variable `dest`. The operation may not be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void awrite_async(remote<T*> dest, int index, T* src)`*
-    + Issue an asynchronous write of the value at the local memory location pointed to by `src` into the element at position `index` within the distributed array `dest` (where `dest` is a pointer to a remotely hosted array of type `T`). The operation may not be completed when the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`void flush(remote<T> src)`*
-    + Ensure that all read and write operations on the distributed variable `src` (or its associated array) issued before this function call are fully completed by the time the function returns.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`bool compare_and_swap_sync(remote<T> dest, T old_value, T new_value)`*
-    + Issue a synchronous compare-and-swap operation on the distributed variable `dest`. The operation atomically compares the current value of `dest` with `old_value`. If they are equal, the value of `dest` is replaced with `new_value`; otherwise, no change is made. The operation is guaranteed to be completed when the function returns, ensuring that the update (if any) is visible to all processes. The type `T` must be a data type with a size of `1`, `2`, `4`, or `8` bytes.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`bool compare_and_swap_sync(remote<T*> dest, int index, T old_value, T new_value)`*
-    + Issue a synchronous compare-and-swap operation on the element at position `index` within the distributed array `dest` (where `dest` is a pointer to a remotely hosted array of type `T`). The operation atomically compares the current value of the element at `dest[index]` with `old_value`. If they are equal, the element at `dest[index]` is replaced with new_value; otherwise, no change is made. The operation is guaranteed to be completed when the function returns, ensuring that the update (if any) is visible to all processes. The type `T` must be a data type with a size of `1`, `2`, `4`, or `8`.
-]
-#pseudocode-list(line-numbering: none)[
-  + *`T fetch_and_add_sync(remote<T> dest, T inc)`*
-    + Issue a synchronous fetch-and-add operation on the distributed variable `dest`. The operation atomically adds the value `inc` to the current value of `dest`, returning the original value of `dest` (before the addition) to the calling process. The update to `dest` is guaranteed to be completed and visible to all processes when the function returns. The type `T` must be an integral type with a size of `1`, `2`, `4`, or `8` bytes.
-]
+In our next descriptions, we assume that each process in our program is assigned a unique number as an identifier, which is termed as its *rank*. The numbers are taken from the range of `[0, size - 1]`, with `size` being the number of processes in our program.
 
 == A simple baseline distributed SPSC <distributed-spsc>
 
