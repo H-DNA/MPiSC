@@ -19,12 +19,12 @@
 
 Based on the MPSC queue algorithms we have surveyed in @related-works[], we propose two wait-free distributed MPSC queue algorithms:
 - dLTQueue (@dLTQueue) is a direct modification of the original LTQueue @ltqueue without any usage of LL/SC, adapted for distributed environment.
-- Slotqueue (@slotqueue) is inspired by the timestamp-refreshing idea of LTQueue @ltqueue and repeated-rescan of Jiffy @jiffy. Although it still bears some resemblance to LTQueue, we believe that it is more optimized for distributed context.
+- Slotqueue (@slotqueue) is inspired by the timestamp-refreshing idea of dLTQueue @ltqueue and repeated-rescan of Jiffy @jiffy. Although it still bears some resemblance to LTQueue, we believe that it is more optimized for distributed context.
 
 In actuality, dLTQueue and Slotqueue are more than simple MPSC algorithms. They are "MPSC queue wrappers", that is, given an SPSC queue implementation, they yield an MPSC implementation. There is one additional constraint: The SPSC interface must support an additional `readFront` operation, which returns the first data item currently in the SPSC queue.
 
 This fact has an important implication: when we are talking about the characteristics (correctness, progress guarantee, performance model, ABA solution and safe memory reclamation scheme) of an MPSC queue wrapper, we are talking about the correctness, progress guarantee, performance model, ABA solution and safe memory reclamation scheme of the wrapper that turns an SPSC queue to an MPSC queue:
-- If the underlying SPSC queue is linearizable (which is composable), the resulting MPSC queue is linearizable.
+- If the underlying SPSC queue is linearizable, the resulting MPSC queue is linearizable.
 - The resulting MPSC queue's progress guarantee is the weaker guarantee between the wrapper's and the underlying SPSC's.
 - If the underlying SPSC queue is safe against ABA problem and memory reclamation, the resulting MPSC queue is also safe against these problems.
 - If the underlying SPSC queue is unbounded, the resulting MPSC queue is also unbounded.
@@ -62,63 +62,40 @@ The characteristics of these MPSC queue wrappers are summarized in @summary-of-d
   ),
 ) <summary-of-distributed-mpscs>
 
-In our next descriptions, we assume that each process in our program is assigned a unique number as an identifier, which is termed as its *rank*. The numbers are taken from the range of `[0, size - 1]`, with `size` being the number of processes in our program.
+
+The rest of this chapter is organized as follows. @distributed-spsc describes a simple baseline distributed SPSC that is utilized as the underlying SPSC in our MPSC queues. @dLTQueue and @slotqueue introduce dLTQueue and Slotqueue, our two wait-free MPSC queues that are our main contributions in this thesis.
+
+In these next few descriptions, we assume that each process in our program is assigned a unique number as an identifier, which is termed as its *rank*. The numbers are taken from the range of `[0, size - 1]`, with `size` being the number of processes in our program.
 
 == A simple baseline distributed SPSC <distributed-spsc>
 
-For prototyping, the two MPSC queue wrapper algorithms we propose here both utilize a baseline distributed SPSC data structure, which we will present first. For implementation simplicity, we present a bounded SPSC, effectively make our proposed algorithms support only a bounded number of elements. However, one can trivially substitute another distributed unbounded SPSC to make our proposed algorithms support an unbounded number of elements, as long as this SPSC supports the same interface as ours.
+The two MPSC queue wrapper algorithms we propose in @dLTQueue and @slotqueue both utilize a baseline distributed SPSC data structure, which we will present in this section.
+
+For implementation simplicity, we present a bounded SPSC, effectively make our proposed algorithms support only a bounded number of elements. However, one can trivially substitute another distributed unbounded SPSC to make our proposed algorithms support an unbounded number of elements, as long as this SPSC supports the same interface as ours.
+
+The SPSC queue uses a circular array `Data` with a fixed `Capacity`. It maintains two indices: `First` marks the oldest item not yet removed, and `Last` marks the next available slot for insertion. Both indices use modulo arithmetic (`First % Capacity` and `Last % Capacity`) to wrap around the array.
+
+For performance optimization, each process maintains local cached copies of these indices in `First_buf` and `Last_buf`. All indices start at zero. The memory layout is distributed between processes: the dequeuer hosts the `First` and `Last` indices, while the enqueuer hosts the `Data` array itself.
 
 Placement-wise, all queue data in this SPSC is hosted on the enqueuer while the control variables i.e. `First` and `Last`, are hosted on the dequeuer.
 
 #columns(2)[
   #pseudocode-list(line-numbering: none)[
-    + *Types*
-      + `data_t` = The type of data stored.
-  ]
-
-  #pseudocode-list(line-numbering: none)[
     + *Shared variables*
-      + `First`: `remote<uint64_t>`
-        + The index of the first undequeued entry.
-        + Hosted at the dequeuer.
-      + `Last`: `remote<uint64_t>`
-        + The index of the first unenqueued entry.
-        + Hosted at the dequeuer.
-      + `Data`: `remote<data_t*>`
-        + An array of `data_t` of some known capacity.
-        + Hosted at the enqueuer.
+      + `Data`: `gptr<data_t>`
+      + `First`: `gptr<uint64_t>`
+      + `Last`: `gptr<uint64_t>`
   ]
-
   #colbreak()
-
   #pseudocode-list(line-numbering: none)[
     + *Enqueuer-local variables*
-      + `Capacity`: A read-only value indicating the capacity of the SPSC.
-      + `First_buf`: The cached value of `First`.
-      + `Last_buf`: The cached value of `Last`.
-  ]
-
-  #pseudocode-list(line-numbering: none)[
+      + `First_buf`: `uint64_t`
+      + `Last_buf`: `uint64_t`
+      + `Capacity`: `uint64_t`
     + *Dequeuer-local variables*
-      + `Capacity`: A read-only value indicating the capacity of the SPSC.
-      + `First_buf`: The cached value of `First`.
-      + `Last_buf`: The cached value of `Last`.
-  ]
-]
-
-#columns(2)[
-  #pseudocode-list(line-numbering: none)[
-    + *Enqueuer initialization*
-      + Initialize `First` and `Last` to `0`.
-      + Initialize `Capacity`.
-      + Allocate array in `Data`.
-      + Initialize `First_buf = Last_buf = 0`.
-  ]
-  #colbreak()
-  #pseudocode-list(line-numbering: none)[
-    + *Dequeuer initialization*
-      + Initialize `Capacity`.
-      + Initialize `First_buf = Last_buf = 0`.
+      + `First_buf`: `uint64_t`
+      + `Last_buf`: `uint64_t`
+      + `Capacity`: `uint64_t`
   ]
 ]
 
@@ -133,17 +110,17 @@ The procedures of the enqueuer are given as follows.
   )[
     + #line-label(<line-spsc-enqueue-new-last>) `new_last = Last_buf + 1`
     + #line-label(<line-spsc-enqueue-diff-cache-once>) *if* `(new_last - First_buf > Capacity)                                            `
-      + #line-label(<line-spsc-enqueue-resync-first>) `aread_sync(First, &First_buf)`
+      + #line-label(<line-spsc-enqueue-resync-first>) `read(First, &First_buf)`
       + #line-label(<line-spsc-enqueue-diff-cache-twice>) *if* `(new_last - First_buf > Capacity)`
         + #line-label(<line-spsc-enqueue-full>) *return* `false`
-    + #line-label(<line-spsc-enqueue-write>) `awrite_sync(Data, Last_buf % Capacity, &v)`
-    + #line-label(<line-spsc-enqueue-increment-last>) `awrite_sync(Last, &new_last)`
+    + #line-label(<line-spsc-enqueue-write>) `write(Data + Last_buf % Capacity, &v)`
+    + #line-label(<line-spsc-enqueue-increment-last>) `write(Last, &new_last)`
     + #line-label(<line-spsc-enqueue-update-cache>) `Last_buf = new_last`
     + #line-label(<line-spsc-enqueue-success>) *return* `true`
   ],
 ) <spsc-enqueue>
 
-`spsc_enqueue` first computes the new `Last` value (@line-spsc-enqueue-new-last). If the queue is full as indicating by the difference the new `Last` value and `First_buf` (@line-spsc-enqueue-diff-cache-once), there can still be the possibility that some elements have been dequeued but `First_buf` has not been synced with `First` yet, therefore, we first refresh the value of `First_buf` by fetching from `First` (@line-spsc-enqueue-resync-first). If the queue is still full (@line-spsc-enqueue-diff-cache-twice), we signal failure (@line-spsc-enqueue-full). Otherwise, we proceed to write the enqueued value to the entry at `Last_buf % Capacity` (@line-spsc-enqueue-write), increment `Last` (@line-spsc-enqueue-increment-last), update the value of `Last_buf` (@line-spsc-enqueue-update-cache) and signal success (@line-spsc-enqueue-success).
+`spsc_enqueue` first computes the new `Last` value (@line-spsc-enqueue-new-last). If the queue is full as indicated by the difference the new `Last` value and `First_buf` (@line-spsc-enqueue-diff-cache-once), there can still be the possibility that some elements have been dequeued but `First_buf` has not been synced with `First` yet, therefore, we first refresh the value of `First_buf` by fetching from `First` (@line-spsc-enqueue-resync-first). If the queue is still full (@line-spsc-enqueue-diff-cache-twice), we signal failure (@line-spsc-enqueue-full). Otherwise, we proceed to write the enqueued value to the entry at `Last_buf % Capacity` (@line-spsc-enqueue-write), increment `Last` (@line-spsc-enqueue-increment-last), update the value of `Last_buf` (@line-spsc-enqueue-update-cache) and signal success (@line-spsc-enqueue-success).
 
 #figure(
   kind: "algorithm",
@@ -155,10 +132,10 @@ The procedures of the enqueuer are given as follows.
   )[
     + #line-label(<line-spsc-e-readFront-diff-cache-once>) *if* `(First_buf >= Last_buf)                                           `
       + #line-label(<line-spsc-e-readFront-empty-once>) *return* `false`
-    + #line-label(<line-spsc-e-readFront-resync-first>) `aread_sync(First, &First_buf)`
+    + #line-label(<line-spsc-e-readFront-resync-first>) `read(First, &First_buf)`
     + #line-label(<line-spsc-e-readFront-diff-cache-twice>) *if* `(First_buf >= Last_buf)                                           `
       + #line-label(<line-spsc-e-readFront-empty-twice>) *return* `false`
-    + #line-label(<line-spsc-e-readFront-read>) `aread_sync(Data, First_buf % Capacity, output)`
+    + #line-label(<line-spsc-e-readFront-read>) `read(Data + First_buf % Capacity, output)`
     + #line-label(<line-spsc-e-readFront-success>) *return* `true`
   ],
 ) <spsc-enqueue-readFront>
@@ -177,18 +154,18 @@ The procedures of the dequeuer are given as follows.
   )[
     + #line-label(<line-spsc-dequeue-new-first>) `new_first = First_buf + 1`
     + #line-label(<line-spsc-dequeue-empty-once>) *if* `(new_first > Last_buf)                                            `
-      + #line-label(<line-spsc-dequeue-resync-last>) `aread_sync(Last, &Last_buf)`
+      + #line-label(<line-spsc-dequeue-resync-last>) `read(Last, &Last_buf)`
       + #line-label(<line-spsc-dequeue-empty-twice>) *if* `(new_first > Last_buf)`
         + #line-label(<line-spsc-dequeue-empty>) *return* `false`
-    + #line-label(<line-spsc-dequeue-read>) `aread_sync(Data, First_buf % Capacity, output)`
-    + #line-label(<line-spsc-dequeue-swing-first>) `awrite_sync(First, &new_first)`
+    + #line-label(<line-spsc-dequeue-read>) `read(Data + First_buf % Capacity, output)`
+    + #line-label(<line-spsc-dequeue-swing-first>) `write(First, &new_first)`
     + #line-label(<line-spsc-dequeue-update-cache>) `First_buf = new_first`
     + #line-label(<line-spsc-dequeue-success>) *return* `true`
 
   ],
 ) <spsc-dequeue>
 
-`spsc_dequeue` first computes the new `First` value (@line-spsc-dequeue-new-first). If the queue is empty as indicating by the difference the new `First` value and `Last_buf` (@line-spsc-dequeue-empty-once), there can still be the possibility that some elements have been enqueued but `Last_buf` has not been synced with `Last` yet, therefore, we first refresh the value of `Last_buf` by fetching from `Last` (@line-spsc-dequeue-resync-last). If the queue is still empty (@line-spsc-dequeue-empty-twice), we signal failure (@line-spsc-dequeue-empty). Otherwise, we proceed to read the top value at `First_buf % Capacity` (@line-spsc-dequeue-read) into `output`, increment `First` (@line-spsc-dequeue-swing-first) - effectively dequeue the element, update the value of `First_buf` (@line-spsc-dequeue-update-cache) and signal success (@line-spsc-dequeue-success).
+`spsc_dequeue` first computes the new `First` value (@line-spsc-dequeue-new-first). If the queue is empty as indicated by the difference the new `First` value and `Last_buf` (@line-spsc-dequeue-empty-once), there can still be the possibility that some elements have been enqueued but `Last_buf` has not been synced with `Last` yet, therefore, we first refresh the value of `Last_buf` by fetching from `Last` (@line-spsc-dequeue-resync-last). If the queue is still empty (@line-spsc-dequeue-empty-twice), we signal failure (@line-spsc-dequeue-empty). Otherwise, we proceed to read the top value at `First_buf % Capacity` (@line-spsc-dequeue-read) into `output`, increment `First` (@line-spsc-dequeue-swing-first) - effectively dequeue the element, update the value of `First_buf` (@line-spsc-dequeue-update-cache) and signal success (@line-spsc-dequeue-success).
 
 #figure(
   kind: "algorithm",
@@ -199,10 +176,10 @@ The procedures of the dequeuer are given as follows.
     numbered-title: [`bool spsc_readFront`#sub(`d`)`(data_t* output)`],
   )[
     + #line-label(<line-spsc-d-readFront-diff-cache-once>) *if* `(First_buf >= Last_buf)                                               `
-      + #line-label(<line-spsc-d-readFront-resync-last>) `aread_sync(Last, &Last_buf)`
+      + #line-label(<line-spsc-d-readFront-resync-last>) `read(Last, &Last_buf)`
       + #line-label(<line-spsc-d-readFront-diff-cache-twice>) *if* `(First_buf >= Last_buf)`
         + #line-label(<line-spsc-d-readFront-empty>) *return* `false`
-    + #line-label(<line-spsc-d-readFront-read>) `aread_sync(Data, First_buf % Capacity, output)`
+    + #line-label(<line-spsc-d-readFront-read>) `read(Data + First_buf % Capacity, output)`
     + #line-label(<line-spsc-d-readFront-success>) *return* `true`
   ],
 ) <spsc-dequeue-readFront>
