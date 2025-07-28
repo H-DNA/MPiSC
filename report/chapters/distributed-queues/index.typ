@@ -194,11 +194,11 @@ This algorithm presents our most straightforward effort to port LTQueue @ltqueue
 
 The structure of our dLTQueue is shown as in @modified-ltqueue-tree.
 
-We differentiate between 2 types of nodes: *enqueuer nodes* (represented as the rectangular boxes at the bottom of @modified-ltqueue-tree) and normal *tree nodes* (represented as the circular boxes in @modified-ltqueue-tree).
+We differentiate between 2 types of nodes: _enqueuer nodes_ (represented as the rectangular boxes at the bottom of @modified-ltqueue-tree) and normal _tree nodes_ (represented as the circular boxes in @modified-ltqueue-tree).
 
 Each enqueuer node corresponds to an enqueuer. Each time the local SPSC is enqueued with a value, the enqueuer timestamps the value using a distributed counter shared by all enqueuers. An enqueuer node stores the SPSC local to the corresponding enqueuer and a `min_timestamp` value which is the minimum timestamp inside the local SPSC.
 
-Each tree node stores the rank of an enqueuer process. This rank corresponds to the enqueuer node with the minimum timestamp among the node's children's ranks. The tree node that is attached to an enqueuer node is called a *leaf node*, otherwise, it is called an *internal node*.
+Each tree node stores the rank of an enqueuer process. This rank corresponds to the enqueuer node with the minimum timestamp among the node's children's ranks. The tree node that is attached to an enqueuer node is called a _leaf node_, otherwise, it is called an _internal node_.
 
 Note that if a local SPSC is empty, the `min_timestamp` variable of the corresponding enqueuer node is set to `MAX_TIMESTAMP` and the corresponding leaf node's rank is set to `DUMMY_RANK`.
 
@@ -214,9 +214,9 @@ Note that if a local SPSC is empty, the `min_timestamp` variable of the correspo
 )
 
 Placement-wise:
-- The *enqueuer nodes* are hosted at the corresponding *enqueuer*.
-- All the *tree nodes* are hosted at the *dequeuer*.
-- The distributed counter, which the enqueuers use to timestamp their enqueued value, is hosted at the *dequeuer*.
+- The enqueuer nodes are hosted at the corresponding enqueuer.
+- All the tree nodes are hosted at the dequeuer.
+- The distributed counter, which the enqueuers use to timestamp their enqueued value, is hosted at the dequeuer.
 
 === Data structure
 
@@ -248,17 +248,17 @@ Note that we have described a very specific and simple way to organize the tree 
 
 #pseudocode-list(line-numbering: none)[
   + *Shared variables*
-    + `Counter`: `remote<uint64_t>`
+    + `Counter`: `gptr<uint64_t>`
       + A distributed counter shared by the enqueuers. Hosted at the dequeuer.
     + `Tree_size`: `uint64_t`
       + A read-only variable storing the number of tree nodes present in the dLTQueue.
-    + `Nodes`: `remote<node_t>`
+    + `Nodes`: `gptr<node_t>`
       + An array with `Tree_size` entries storing all the tree nodes present in the dLTQueue shared by all processes.
       + Hosted at the dequeuer.
       + This array is organized in a similar manner as a min-heap: At index `0` is the root node. For every index $i gt 0$, $floor((i - 1) / 2)$ is the index of the parent of node $i$. For every index $i gt 0$, $2i + 1$ and $2i + 2$ are the indices of the children of node $i$.
     + `Dequeuer_rank`: `uint32_t`
       + The rank of the dequeuer process. This is read-only.
-    + `Timestamps`: A read-only *array* `[0..size - 2]` of `remote<timestamp_t>`, with `size` being the number of processes.
+    + `Timestamps`: A read-only *array* `[0..size - 1]` of `gptr<timestamp_t>`, with `size` being the number of processes.
       + The entry at index $i$ corresponds to the `Min_timestamp` distributed variable at the enqueuer with an order of $i$.
 ]
 
@@ -269,7 +269,7 @@ Note that we have described a very specific and simple way to organize the tree 
         + The number of processes.
       + `Self_rank`: `uint32_t`
         + The rank of the current enqueuer process.
-      + `Min_timestamp`: `remote<timestamp_t>`
+      + `Min_timestamp`: `gptr<timestamp_t>`
       + `Spsc`: `spsc_t`
         + This SPSC is synchronized with the dequeuer.
   ]
@@ -357,7 +357,7 @@ Similarly, `children` returns all indices of the child tree nodes given the node
     booktabs: true,
     numbered-title: [`uint32_t leafNodeIndex(uint32_t enqueuer_rank)`],
   )[
-    + *return* `Tree_size + enqueuer_rank                                `
+    + *return* `Tree_size + enqueuer_rank                                          `
   ],
 ) <ltqueue-leaf-node-index>
 
@@ -373,7 +373,7 @@ The followings are the enqueuer procedures.
     booktabs: true,
     numbered-title: [`bool enqueue(data_t value)`],
   )[
-    + #line-label(<line-ltqueue-enqueue-obtain-timestamp>) `timestamp = fetch_and_add_sync(Counter, 1)                                        `
+    + #line-label(<line-ltqueue-enqueue-obtain-timestamp>) `timestamp = faa(Counter, 1)                                            `
     + #line-label(<line-ltqueue-enqueue-insert>) *if* `(!spsc_enqueue(&Spsc, (value, timestamp)))`
       + #line-label(<line-ltqueue-enqueue-failure>) *return* `false`
     // + `front = (data_t {}, timestamp_t {})`
@@ -385,7 +385,7 @@ The followings are the enqueuer procedures.
   ],
 ) <ltqueue-enqueue>
 
-To enqueue a value, `enqueue` first obtains a count by `FAA` the distributed counter `Counter` (@line-ltqueue-enqueue-obtain-timestamp). Then, we enqueue the data tagged with the timestamp into the local SPSC (@line-ltqueue-enqueue-insert). Then, `enqueue` propagates the changes by invoking `propagate`#sub(`e`)`()` (@line-ltqueue-enqueue-propagate) and returns `true`.
+To enqueue a value, `enqueue` first obtains a count by FAA-ing the distributed counter `Counter` (@line-ltqueue-enqueue-obtain-timestamp). Then, we enqueue the data tagged with the timestamp into the local SPSC (@line-ltqueue-enqueue-insert). Then, `enqueue` propagates the changes by invoking `propagate`#sub(`e`)`()` (@line-ltqueue-enqueue-propagate) and returns `true`.
 
 #figure(
   kind: "algorithm",
@@ -419,16 +419,16 @@ The `propagate`#sub(`e`) procedure is responsible for propagating SPSC updates u
     numbered-title: [`bool refreshTimestamp`#sub(`e`)`()`],
   )[
     + #line-label(<line-ltqueue-e-refresh-timestamp-init-min-timestamp>) `min_timestamp = timestamp_t {}`
-    + #line-label(<line-ltqueue-e-refresh-timestamp-read-min-timestamp>) `aread_sync(Min_timestamp, &min_timestamp)`
+    + #line-label(<line-ltqueue-e-refresh-timestamp-read-min-timestamp>) `read(Min_timestamp, &min_timestamp)`
     + #line-label(<line-ltqueue-e-refresh-timestamp-extract-min-timestamp>) `{old-timestamp, old-version} = min_timestamp                                 `
     + #line-label(<line-ltqueue-e-refresh-timestamp-init-front>) `front = (data_t {}, timestamp_t {})`
     + #line-label(<line-ltqueue-e-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(Spsc, &front)`
     + #line-label(<line-ltqueue-e-refresh-timestamp-empty-check>) *if* `(is_empty)`
-      + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-empty>) *return* `compare_and_swap_sync(Min_timestamp,
+      + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-empty>) *return* `cas(Min_timestamp,
 timestamp_t {old-timestamp, old-version},
 timestamp_t {MAX_TIMESTAMP, old-version + 1})`
     + #line-label(<line-ltqueue-e-refresh-timestamp-not-empty-check>) *else*
-      + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-not-empty>) *return* `compare_and_swap_sync(Min_timestamp,
+      + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-not-empty>) *return* `cas(Min_timestamp,
 timestamp_t {old-timestamp, old-version},
 timestamp_t {front.timestamp, old-version + 1})`
   ],
@@ -445,21 +445,21 @@ The `refreshTimestamp`#sub(`e`) procedure is responsible for updating the `Min_t
     numbered-title: [`bool refreshNode`#sub(`e`)`(uint32_t current_node_index)`],
   )[
     + #line-label(<line-ltqueue-e-refresh-node-init-current>) `current_node = node_t {}                                                      `
-    + #line-label(<line-ltqueue-e-refresh-node-read-current-node>) `aread_sync(Nodes, current_node_index, &current_node)`
+    + #line-label(<line-ltqueue-e-refresh-node-read-current-node>) `read(Nodes, current_node_index, &current_node)`
     + #line-label(<line-ltqueue-e-refresh-node-extract-rank>) `{old-rank, old-version} = current_node.rank`
     + #line-label(<line-ltqueue-e-refresh-node-init-min-rank>) `min_rank = DUMMY_RANK`
     + #line-label(<line-ltqueue-e-refresh-node-init-min-timestamp>) `min_timestamp = MAX_TIMESTAMP`
     + #line-label(<line-ltqueue-e-refresh-node-for-loop>) *for* `child_node_index` in `children(current_node)`
       + #line-label(<line-ltqueue-e-refresh-node-init-child>) `child_node = node_t {}`
-      + #line-label(<line-ltqueue-e-refresh-node-read-child>) `aread_sync(Nodes, child_node_index, &child_node)`
+      + #line-label(<line-ltqueue-e-refresh-node-read-child>) `read(Nodes + child_node_index, &child_node)`
       + #line-label(<line-ltqueue-e-refresh-node-extract-child-rank>) `{child_rank, child_version} = child_node`
       + #line-label(<line-ltqueue-e-refresh-node-check-dummy>) *if* `(child_rank == DUMMY_RANK)` *continue*
       + #line-label(<line-ltqueue-e-refresh-node-init-child-timestamp>) `child_timestamp = timestamp_t {}`
-      + #line-label(<line-ltqueue-e-refresh-node-read-timestamp>) `aread_sync(Timestamps[child_rank], &child_timestamp)`
+      + #line-label(<line-ltqueue-e-refresh-node-read-timestamp>) `read(Timestamps + child_rank, &child_timestamp)`
       + #line-label(<line-ltqueue-e-refresh-node-check-timestamp>) *if* `(child_timestamp < min_timestamp)`
         + #line-label(<line-ltqueue-e-refresh-node-update-min-timestamp>) `min_timestamp = child_timestamp`
         + #line-label(<line-ltqueue-e-refresh-node-update-min-rank>) `min_rank = child_rank`
-    + #line-label(<line-ltqueue-e-refresh-node-cas>) *return* `compare_and_swap_sync(Nodes, current_node_index,
+    + #line-label(<line-ltqueue-e-refresh-node-cas>) *return* `cas(Nodes + current_node_index,
 node_t {rank_t {old_rank, old_version}},
 node_t {rank_t {min_rank, old_version + 1}})`
   ],
@@ -477,12 +477,12 @@ The `refreshNode`#sub(`e`) procedure is responsible for updating the ranks of th
   )[
     + #line-label(<line-ltqueue-e-refresh-leaf-index>) `leaf_node_index = leafNodeIndex(Self_rank)             `
     + #line-label(<line-ltqueue-e-refresh-leaf-init>) `leaf_node = node_t {}`
-    + #line-label(<line-ltqueue-e-refresh-leaf-read>) `aread_sync(Nodes, leaf_node_index, &leaf_node)`
+    + #line-label(<line-ltqueue-e-refresh-leaf-read>) `read(Nodes + leaf_node_index, &leaf_node)`
     + #line-label(<line-ltqueue-e-refresh-leaf-extract-rank>) `{old_rank, old_version} = leaf_node.rank`
     + #line-label(<line-ltqueue-e-refresh-leaf-init-timestamp>) `min_timestamp = timestamp_t {}`
-    + #line-label(<line-ltqueue-e-refresh-leaf-read-timestamp>) `aread_sync(Min_timestamp, &min_timestamp)`
+    + #line-label(<line-ltqueue-e-refresh-leaf-read-timestamp>) `read(Min_timestamp, &min_timestamp)`
     + #line-label(<line-ltqueue-e-refresh-leaf-extract-timestamp>) `timestamp = min_timestamp.timestamp`
-    + #line-label(<line-ltqueue-e-refresh-leaf-cas>) *return* `compare_and_swap_sync(Nodes, leaf_node_index,
+    + #line-label(<line-ltqueue-e-refresh-leaf-cas>) *return* `cas(Nodes + leaf_node_index,
 node_t {rank_t {old-rank, old-version}},
 node_t {timestamp == MAX ? DUMMY_RANK : Self_rank, old_version + 1})`
   ],
@@ -501,7 +501,7 @@ The followings are the dequeuer procedures.
     numbered-title: [`bool dequeue(data_t* output)`],
   )[
     + #line-label(<line-ltqueue-dequeue-init>) `root_node = node_t {}                                                     `
-    + #line-label(<line-ltqueue-dequeue-read>) `aread_sync(Nodes, 0, &root_node)`
+    + #line-label(<line-ltqueue-dequeue-read>) `read(Nodes, &root_node)`
     + #line-label(<line-ltqueue-dequeue-extract-rank>) `{rank, version} = root_node.rank`
     + #line-label(<line-ltqueue-dequeue-check-empty>) *if* `(rank == DUMMY_RANK)` *return* `false`
     + #line-label(<line-ltqueue-dequeue-init-output>) `output_with_timestamp = (data_t {}, timestamp_t {})`
@@ -549,16 +549,16 @@ The `propagate`#sub(`d`) procedure is similar to `propagate`#sub(`e`), with appr
   )[
     + #line-label(<line-ltqueue-d-refresh-timestamp-get-order>) `enqueuer_order = enqueuer_rank`
     + #line-label(<line-ltqueue-d-refresh-timestamp-init>) `min_timestamp = timestamp_t {}`
-    + #line-label(<line-ltqueue-d-refresh-timestamp-read>) `aread_sync(Timestamps, enqueuer_order, &min_timestamp)`
+    + #line-label(<line-ltqueue-d-refresh-timestamp-read>) `read(Timestamps + enqueuer_order, &min_timestamp)`
     + #line-label(<line-ltqueue-d-refresh-timestamp-extract>) `{old-timestamp, old-version} = min_timestamp                                 `
     + #line-label(<line-ltqueue-d-refresh-timestamp-init-front>) `front = (data_t {}, timestamp_t {})`
     + #line-label(<line-ltqueue-d-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(&Spscs[enqueuer_order], &front)`
     + #line-label(<line-ltqueue-d-refresh-timestamp-check-empty>) *if* `(is_empty)`
-      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-max>) *return* `compare_and_swap_sync(Timestamps, enqueuer_order,
+      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-max>) *return* `cas(Timestamps + enqueuer_order,
 timestamp_t {old-timestamp, old-version},
 timestamp_t {MAX_TIMESTAMP, old-version + 1})`
     + #line-label(<line-ltqueue-d-refresh-timestamp-else>) *else*
-      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-front>) *return* `compare_and_swap_sync(Timestamps, enqueuer_order,
+      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-front>) *return* `cas(Timestamps + enqueuer_order,
 timestamp_t {old-timestamp, old-version},
 timestamp_t {front.timestamp, old-version + 1})`
   ],
@@ -575,21 +575,21 @@ The `refreshTimestamp`#sub(`d`) procedure is similar to `refreshTimestamp`#sub(`
     numbered-title: [`bool refreshNode`#sub(`d`)`(uint32_t current_node_index)`],
   )[
     + #line-label(<line-ltqueue-d-refresh-node-init-current>) `current_node = node_t {}                                                      `
-    + #line-label(<line-ltqueue-d-refresh-node-read-current-node>) `aread_sync(Nodes, current_node_index, &current_node)`
+    + #line-label(<line-ltqueue-d-refresh-node-read-current-node>) `read(Nodes + current_node_index, &current_node)`
     + #line-label(<line-ltqueue-d-refresh-node-extract-rank>) `{old-rank, old-version} = current_node.rank`
     + #line-label(<line-ltqueue-d-refresh-node-init-min-rank>) `min_rank = DUMMY_RANK`
     + #line-label(<line-ltqueue-d-refresh-node-init-min-timestamp>) `min_timestamp = MAX_TIMESTAMP`
     + #line-label(<line-ltqueue-d-refresh-node-for-loop>) *for* `child_node_index` in `children(current_node)`
       + #line-label(<line-ltqueue-d-refresh-node-init-child>) `child_node = node_t {}`
-      + #line-label(<line-ltqueue-d-refresh-node-read-child>) `aread_sync(Nodes, child_node_index, &child_node)`
+      + #line-label(<line-ltqueue-d-refresh-node-read-child>) `read(Nodes + child_node_index, &child_node)`
       + #line-label(<line-ltqueue-d-refresh-node-extract-child-rank>) `{child_rank, child_version} = child_node`
       + #line-label(<line-ltqueue-d-refresh-node-check-dummy>) *if* `(child_rank == DUMMY_RANK)` *continue*
       + #line-label(<line-ltqueue-d-refresh-node-init-child-timestamp>) `child_timestamp = timestamp_t {}`
-      + #line-label(<line-ltqueue-d-refresh-node-read-timestamp>) `aread_sync(Timestamps[child_rank], &child_timestamp)`
+      + #line-label(<line-ltqueue-d-refresh-node-read-timestamp>) `read(Timestamps + child_rank, &child_timestamp)`
       + #line-label(<line-ltqueue-d-refresh-node-check-timestamp>) *if* `(child_timestamp < min_timestamp)`
         + #line-label(<line-ltqueue-d-refresh-node-update-min-timestamp>) `min_timestamp = child_timestamp`
         + #line-label(<line-ltqueue-d-refresh-node-update-min-rank>) `min_rank = child_rank`
-    + #line-label(<line-ltqueue-d-refresh-node-cas>) *return* `compare_and_swap_sync(Nodes, current_node_index,
+    + #line-label(<line-ltqueue-d-refresh-node-cas>) *return* `cas(Nodes + current_node_index,
 node_t {rank_t {old_rank, old_version}},
 node_t {rank_t {min_rank, old_version + 1}})`
   ],
@@ -607,12 +607,12 @@ The `refreshNode`#sub(`d`) procedure is similar to `refreshNode`#sub(`e`), with 
   )[
     + #line-label(<line-ltqueue-d-refresh-leaf-index>) `leaf_node_index = leafNodeIndex(enqueuer_rank)             `
     + #line-label(<line-ltqueue-d-refresh-leaf-init>) `leaf_node = node_t {}`
-    + #line-label(<line-ltqueue-d-refresh-leaf-read>) `aread_sync(Nodes, leaf_node_index, &leaf_node)`
+    + #line-label(<line-ltqueue-d-refresh-leaf-read>) `read(Nodes + leaf_node_index, &leaf_node)`
     + #line-label(<line-ltqueue-d-refresh-leaf-extract-rank>) `{old_rank, old_version} = leaf_node.rank`
     + #line-label(<line-ltqueue-d-refresh-leaf-init-timestamp>) `min_timestamp = timestamp_t {}`
-    + #line-label(<line-ltqueue-d-refresh-leaf-read-timestamp>) `aread_sync(Timestamps, enqueuer_rank, &min_timestamp)`
+    + #line-label(<line-ltqueue-d-refresh-leaf-read-timestamp>) `read(Timestamps + enqueuer_rank, &min_timestamp)`
     + #line-label(<line-ltqueue-d-refresh-leaf-extract-timestamp>) `timestamp = min_timestamp.timestamp`
-    + #line-label(<line-ltqueue-d-refresh-leaf-cas>) *return* `compare_and_swap_sync(Nodes, leaf_node_index,
+    + #line-label(<line-ltqueue-d-refresh-leaf-cas>) *return* `cas(Nodes + leaf_node_index,
 node_t {rank_t {old-rank, old-version}},
 node_t {timestamp == MAX ? DUMMY_RANK : Self_rank, old_version + 1})`
   ],
@@ -651,10 +651,10 @@ We first introduce the types and shared variables utilized in Slotqueue.
 
 #pseudocode-list(line-numbering: none)[
   + *Shared variables*
-    + `Slots`: `remote<timestamp_t*>`
+    + `Slots`: `gptr<timestamp_t*>`
       + An array of `timestamp_t` with the number of entries equal to the number of enqueuers.
       + Hosted at the dequeuer.
-    + `Counter`: `remote<uint64_t>`
+    + `Counter`: `gptr<uint64_t>`
       + A distributed counter.
       + Hosted at the dequeuer.
 ]
