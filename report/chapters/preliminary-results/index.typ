@@ -18,7 +18,7 @@ Latency is the time it takes for a single task to complete. Its unit is often gi
 
 Intuitively, to optimize latency, one should minimize the number of execution steps required by a task. Therefore, it is obvious that optimizing for latency is much clearer than optimizing for throughput.
 
-In concurrent algorithms, multiple tasks are executed by multiple processes. The key observation is that, if we fix the number of processes, the lower the average latency of a task, the larger the number of tasks that can be completed by a process, which implies higher throughput. Therefore, good latency often (but not always) implies good throughput.
+In concurrent algorithms, multiple tasks are executed by multiple processes. We observe that, if we fix the number of processes, the lower the average latency of a task, the larger the number of tasks that can be completed by a process, which implies higher throughput. Therefore, good latency often (but not always) implies good throughput.
 
 From the two points above, we can see that latency is a more intuitive metric to optimize for, while being quite indicative of the algorithm's performance.
 
