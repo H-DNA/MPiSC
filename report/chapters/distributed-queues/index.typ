@@ -718,7 +718,7 @@ The enqueuer operations are given as follows.
     booktabs: true,
     numbered-title: [`bool enqueue(data_t v)`],
   )[
-    + #line-label(<line-slotqueue-enqueue-obtain-timestamp>) `timestamp = fetch_and_add_sync(Counter)                                     `
+    + #line-label(<line-slotqueue-enqueue-obtain-timestamp>) `timestamp = faa(Counter, 1)                                           `
     + #line-label(<line-slotqueue-enqueue-spsc>) *if* `(!spsc_enqueue(&Spsc, (v, timestamp)))` *return* `false`
     + #line-label(<line-slotqueue-enqueue-refresh>) *if* `(!refreshEnqueue(timestamp))`
       + #line-label(<line-slotqueue-enqueue-retry>) `refreshEnqueue(timestamp)`
@@ -743,12 +743,12 @@ To enqueue a value, `enqueue` first obtains a timestamp by FAA-ing the distribut
     + #line-label(<line-slotqueue-refresh-enqueue-check-1>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-early-success>) *return* `true`
     + #line-label(<line-slotqueue-refresh-enqueue-init-old-timestamp>) `old_timestamp = timestamp_t {}`
-    + #line-label(<line-slotqueue-refresh-enqueue-read-slot>) `aread_sync(&Slots, enqueuer_order, &old_timestamp)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-slot>) `read(Slots + enqueuer_order, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-enqueue-read-front-2>) `success = spsc_readFront(Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-2>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-2>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-mid-success>) *return* `true`
-    + #line-label(<line-slotqueue-refresh-enqueue-cas>) *return* `compare_and_swap_sync(Slots, enqueuer_order,
+    + #line-label(<line-slotqueue-refresh-enqueue-cas>) *return* `cas(Slots + enqueuer_order,
     old_timestamp,
     new_timestamp)`
   ],
@@ -791,12 +791,12 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
   )[
     + #line-label(<line-slotqueue-read-min-rank-init-buffer>) `buffered_slots = timestamp_t[Process_count] {}                       `
     + #line-label(<line-slotqueue-read-min-rank-scan1-loop>) *for* `index` *in* `0..Process_count`
-      + #line-label(<line-slotqueue-read-min-rank-scan1-read>) `aread_sync(Slots, index, &bufferred_slots[index])`
+      + #line-label(<line-slotqueue-read-min-rank-scan1-read>) `read(Slots + index, &bufferred_slots[index])`
     + #line-label(<line-slotqueue-read-min-rank-check-empty>) *if* every entry in `bufferred_slots` is `MAX_TIMESTAMP`
       + #line-label(<line-slotqueue-read-min-rank-return-empty>) *return* `DUMMY_RANK`
     + #line-label(<line-slotqueue-read-min-rank-find-min>) *let* `rank` be the index of the first slot that contains the minimum timestamp among `bufferred_slots`
     + #line-label(<line-slotqueue-read-min-rank-scan2-loop>) *for* `index` *in* `0..rank`
-      + #line-label(<line-slotqueue-read-min-rank-scan2-read>) `aread_sync(Slots, index, &bufferred_slots[index])`
+      + #line-label(<line-slotqueue-read-min-rank-scan2-read>) `read(Slots + index, &bufferred_slots[index])`
     + #line-label(<line-slotqueue-read-min-rank-init-min>) `min_timestamp = MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-read-min-rank-check-loop>) *for* `index` *in* `0..rank`
       + #line-label(<line-slotqueue-read-min-rank-get-timestamp>) `timestamp = buffered_slots[index]`
@@ -819,11 +819,11 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
   )[
     + #line-label(<line-slotqueue-refresh-dequeue-get-order>) `enqueuer_order = rank                                                 `
     + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp>) `old_timestamp = timestamp_t {}`
-    + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `aread_sync(&Slots, enqueuer_order, &old_timestamp)`
+    + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `read(Slots + enqueuer_order, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-dequeue-init-front>) `front = (data_t {}, timestamp_t {})`
     + #line-label(<line-slotqueue-refresh-dequeue-read-front>) `success = spsc_readFront(Spscs[enqueuer_order], &front)`
     + #line-label(<line-slotqueue-refresh-dequeue-calc-timestamp>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
-    + #line-label(<line-slotqueue-refresh-dequeue-cas>) *return* `compare_and_swap_sync(Slots, enqueuer_order,
+    + #line-label(<line-slotqueue-refresh-dequeue-cas>) *return* `cas(Slots + enqueuer_order,
     old_timestamp,
     new_timestamp)`
   ],
