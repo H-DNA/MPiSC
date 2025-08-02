@@ -75,8 +75,7 @@ jobs:
         run: |
           echo "TYPST_DIRS=$(find . -name "main.typst" -o -name "main.typ" | xargs dirname | tr '\n' ' ')" >> $GITHUB_ENV
           mkdir -p build
-          cp -r references build
-      
+          
       - name: Build PDFs from Typst projects
         run: |
           # Create a file to store modification dates
