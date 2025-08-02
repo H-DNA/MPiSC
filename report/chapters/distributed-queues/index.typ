@@ -420,17 +420,17 @@ The `propagate`#sub(`e`) procedure is responsible for propagating SPSC updates u
   )[
     + #line-label(<line-ltqueue-e-refresh-timestamp-init-min-timestamp>) `min_timestamp = timestamp_t {}`
     + #line-label(<line-ltqueue-e-refresh-timestamp-read-min-timestamp>) `read(Min_timestamp, &min_timestamp)`
-    + #line-label(<line-ltqueue-e-refresh-timestamp-extract-min-timestamp>) `{old-timestamp, old-version} = min_timestamp                                 `
+    + #line-label(<line-ltqueue-e-refresh-timestamp-extract-min-timestamp>) `{old_timestamp, old_version} = min_timestamp                                 `
     + #line-label(<line-ltqueue-e-refresh-timestamp-init-front>) `front = (data_t {}, timestamp_t {})`
     + #line-label(<line-ltqueue-e-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(Spsc, &front)`
     + #line-label(<line-ltqueue-e-refresh-timestamp-empty-check>) *if* `(is_empty)`
       + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-empty>) *return* `cas(Min_timestamp,
-timestamp_t {old-timestamp, old-version},
-timestamp_t {MAX_TIMESTAMP, old-version + 1})`
+timestamp_t {old_timestamp, old_version},
+timestamp_t {MAX_TIMESTAMP, old_version + 1})`
     + #line-label(<line-ltqueue-e-refresh-timestamp-not-empty-check>) *else*
       + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-not-empty>) *return* `cas(Min_timestamp,
-timestamp_t {old-timestamp, old-version},
-timestamp_t {front.timestamp, old-version + 1})`
+timestamp_t {old_timestamp, old_version},
+timestamp_t {front.timestamp, old_version + 1})`
   ],
 ) <ltqueue-enqueue-refresh-timestamp>
 
@@ -446,7 +446,7 @@ The `refreshTimestamp`#sub(`e`) procedure is responsible for updating the `Min_t
   )[
     + #line-label(<line-ltqueue-e-refresh-node-init-current>) `current_node = node_t {}                                                      `
     + #line-label(<line-ltqueue-e-refresh-node-read-current-node>) `read(Nodes, current_node_index, &current_node)`
-    + #line-label(<line-ltqueue-e-refresh-node-extract-rank>) `{old-rank, old-version} = current_node.rank`
+    + #line-label(<line-ltqueue-e-refresh-node-extract-rank>) `{old_rank, old_version} = current_node.rank`
     + #line-label(<line-ltqueue-e-refresh-node-init-min-rank>) `min_rank = DUMMY_RANK`
     + #line-label(<line-ltqueue-e-refresh-node-init-min-timestamp>) `min_timestamp = MAX_TIMESTAMP`
     + #line-label(<line-ltqueue-e-refresh-node-for-loop>) *for* `child_node_index` in `children(current_node)`
@@ -483,7 +483,7 @@ The `refreshNode`#sub(`e`) procedure is responsible for updating the ranks of th
     + #line-label(<line-ltqueue-e-refresh-leaf-read-timestamp>) `read(Min_timestamp, &min_timestamp)`
     + #line-label(<line-ltqueue-e-refresh-leaf-extract-timestamp>) `timestamp = min_timestamp.timestamp`
     + #line-label(<line-ltqueue-e-refresh-leaf-cas>) *return* `cas(Nodes + leaf_node_index,
-node_t {rank_t {old-rank, old-version}},
+node_t {rank_t {old_rank, old_version}},
 node_t {timestamp == MAX ? DUMMY_RANK : Self_rank, old_version + 1})`
   ],
 ) <ltqueue-enqueue-refresh-leaf>
@@ -550,17 +550,17 @@ The `propagate`#sub(`d`) procedure is similar to `propagate`#sub(`e`), with appr
     + #line-label(<line-ltqueue-d-refresh-timestamp-get-order>) `enqueuer_order = enqueuer_rank`
     + #line-label(<line-ltqueue-d-refresh-timestamp-init>) `min_timestamp = timestamp_t {}`
     + #line-label(<line-ltqueue-d-refresh-timestamp-read>) `read(Timestamps + enqueuer_order, &min_timestamp)`
-    + #line-label(<line-ltqueue-d-refresh-timestamp-extract>) `{old-timestamp, old-version} = min_timestamp                                 `
+    + #line-label(<line-ltqueue-d-refresh-timestamp-extract>) `{old_timestamp, old_version} = min_timestamp                                 `
     + #line-label(<line-ltqueue-d-refresh-timestamp-init-front>) `front = (data_t {}, timestamp_t {})`
     + #line-label(<line-ltqueue-d-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(&Spscs[enqueuer_order], &front)`
     + #line-label(<line-ltqueue-d-refresh-timestamp-check-empty>) *if* `(is_empty)`
       + #line-label(<line-ltqueue-d-refresh-timestamp-cas-max>) *return* `cas(Timestamps + enqueuer_order,
-timestamp_t {old-timestamp, old-version},
-timestamp_t {MAX_TIMESTAMP, old-version + 1})`
+timestamp_t {old_timestamp, old_version},
+timestamp_t {MAX_TIMESTAMP, old_version + 1})`
     + #line-label(<line-ltqueue-d-refresh-timestamp-else>) *else*
       + #line-label(<line-ltqueue-d-refresh-timestamp-cas-front>) *return* `cas(Timestamps + enqueuer_order,
-timestamp_t {old-timestamp, old-version},
-timestamp_t {front.timestamp, old-version + 1})`
+timestamp_t {old_timestamp, old_version},
+timestamp_t {front.timestamp, old_version + 1})`
   ],
 ) <ltqueue-dequeue-refresh-timestamp>
 
@@ -576,7 +576,7 @@ The `refreshTimestamp`#sub(`d`) procedure is similar to `refreshTimestamp`#sub(`
   )[
     + #line-label(<line-ltqueue-d-refresh-node-init-current>) `current_node = node_t {}                                                      `
     + #line-label(<line-ltqueue-d-refresh-node-read-current-node>) `read(Nodes + current_node_index, &current_node)`
-    + #line-label(<line-ltqueue-d-refresh-node-extract-rank>) `{old-rank, old-version} = current_node.rank`
+    + #line-label(<line-ltqueue-d-refresh-node-extract-rank>) `{old_rank, old_version} = current_node.rank`
     + #line-label(<line-ltqueue-d-refresh-node-init-min-rank>) `min_rank = DUMMY_RANK`
     + #line-label(<line-ltqueue-d-refresh-node-init-min-timestamp>) `min_timestamp = MAX_TIMESTAMP`
     + #line-label(<line-ltqueue-d-refresh-node-for-loop>) *for* `child_node_index` in `children(current_node)`
@@ -613,7 +613,7 @@ The `refreshNode`#sub(`d`) procedure is similar to `refreshNode`#sub(`e`), with 
     + #line-label(<line-ltqueue-d-refresh-leaf-read-timestamp>) `read(Timestamps + enqueuer_rank, &min_timestamp)`
     + #line-label(<line-ltqueue-d-refresh-leaf-extract-timestamp>) `timestamp = min_timestamp.timestamp`
     + #line-label(<line-ltqueue-d-refresh-leaf-cas>) *return* `cas(Nodes + leaf_node_index,
-node_t {rank_t {old-rank, old-version}},
+node_t {rank_t {old_rank, old_version}},
 node_t {timestamp == MAX ? DUMMY_RANK : Self_rank, old_version + 1})`
   ],
 ) <ltqueue-dequeue-refresh-leaf>
@@ -742,7 +742,7 @@ To enqueue a value, `enqueue` first obtains a timestamp by FAA-ing the distribut
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-1>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-early-success>) *return* `true`
-    + #line-label(<line-slotqueue-refresh-enqueue-init-old-timestamp>) `old_timestamp = timestamp_t {}`
+    + #line-label(<line-slotqueue-refresh-enqueue-init-old_timestamp>) `old_timestamp = timestamp_t {}`
     + #line-label(<line-slotqueue-refresh-enqueue-read-slot>) `read(Slots + enqueuer_order, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-enqueue-read-front-2>) `success = spsc_readFront(Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-2>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
