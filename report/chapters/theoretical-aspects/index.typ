@@ -575,13 +575,13 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
     numbered-title: [`bool refreshEnqueue(timestamp_t ts)`],
   )[
     + #line-label(<line-slotqueue-refresh-enqueue-init-front-verify>) `front = (data_t {}, timestamp_t {})                                       `
-    + #line-label(<line-slotqueue-refresh-enqueue-read-front-verify>) `success = spsc_readFront(Spsc, &front)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-front-verify>) `success = spsc_readFront(&Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-verify>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-1-verify>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-early-success-verify>) *return* `true`
     + #line-label(<line-slotqueue-refresh-enqueue-init-old_timestamp-verify>) `old_timestamp = timestamp_t {}`
     + #line-label(<line-slotqueue-refresh-enqueue-read-slot-verify>) `read(Slots + Self_rank, &old_timestamp)`
-    + #line-label(<line-slotqueue-refresh-enqueue-read-front-2-verify>) `success = spsc_readFront(Spsc, &front)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-front-2-verify>) `success = spsc_readFront(&Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-2-verify>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-2-verify>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-mid-success-verify>) *return* `true`

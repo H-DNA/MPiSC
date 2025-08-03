@@ -422,7 +422,7 @@ The `propagate`#sub(`e`) procedure is responsible for propagating SPSC updates u
     + #line-label(<line-ltqueue-e-refresh-timestamp-read-min-timestamp>) `read(Min_timestamp, &min_timestamp)`
     + #line-label(<line-ltqueue-e-refresh-timestamp-extract-min-timestamp>) `{old_timestamp, old_version} = min_timestamp                                 `
     + #line-label(<line-ltqueue-e-refresh-timestamp-init-front>) `front = (data_t {}, timestamp_t {})`
-    + #line-label(<line-ltqueue-e-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(Spsc, &front)`
+    + #line-label(<line-ltqueue-e-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(&Spsc, &front)`
     + #line-label(<line-ltqueue-e-refresh-timestamp-empty-check>) *if* `(is_empty)`
       + #line-label(<line-ltqueue-e-refresh-timestamp-CAS-empty>) *return* `cas(Min_timestamp,
 timestamp_t {old_timestamp, old_version},
@@ -736,13 +736,13 @@ To enqueue a value, `enqueue` first obtains a timestamp by FAA-ing the distribut
     numbered-title: [`bool refreshEnqueue(timestamp_t ts)`],
   )[
     + #line-label(<line-slotqueue-refresh-enqueue-init-front>) `front = (data_t {}, timestamp_t {})                                       `
-    + #line-label(<line-slotqueue-refresh-enqueue-read-front>) `success = spsc_readFront(Spsc, &front)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-front>) `success = spsc_readFront(&Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-1>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-early-success>) *return* `true`
     + #line-label(<line-slotqueue-refresh-enqueue-init-old_timestamp>) `old_timestamp = timestamp_t {}`
     + #line-label(<line-slotqueue-refresh-enqueue-read-slot>) `read(Slots + Self_rank, &old_timestamp)`
-    + #line-label(<line-slotqueue-refresh-enqueue-read-front-2>) `success = spsc_readFront(Spsc, &front)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-front-2>) `success = spsc_readFront(&Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-2>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-2>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-mid-success>) *return* `true`
