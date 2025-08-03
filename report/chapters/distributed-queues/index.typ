@@ -259,7 +259,7 @@ Note that we have described a very specific and simple way to organize the tree 
     + `Dequeuer_rank`: `uint32_t`
       + The rank of the dequeuer process. This is read-only.
     + `Timestamps`: A read-only *array* `[0..size - 1]` of `gptr<timestamp_t>`, with `size` being the number of processes.
-      + The entry at index $i$ corresponds to the `Min_timestamp` distributed variable at the enqueuer with an order of $i$.
+      + The entry at index $i$ corresponds to the `Min_timestamp` distributed variable at the process with a rank of $i$.
 ]
 
 #columns(2)[
@@ -280,8 +280,8 @@ Note that we have described a very specific and simple way to organize the tree 
     + *Dequeuer-local variables*
       + `Process_count`: `uint64_t`
         + The number of processes.
-      + `Spscs`: *array* of `spsc_t` with `Process_count` entries.
-        + The entry at index $i$ corresponds to the `Spsc` at the enqueuer with an order of $i$.
+      + `Spscs`: An *array* of `spsc_t` with `Process_count` entries.
+        + The entry at index $i$ corresponds to the `Spsc` at the process with a rank of $i$.
   ]
 ]
 
@@ -547,18 +547,17 @@ The `propagate`#sub(`d`) procedure is similar to `propagate`#sub(`e`), with appr
     booktabs: true,
     numbered-title: [`bool refreshTimestamp`#sub(`d`)`(uint32_t enqueuer_rank)`],
   )[
-    + #line-label(<line-ltqueue-d-refresh-timestamp-get-order>) `enqueuer_order = enqueuer_rank`
     + #line-label(<line-ltqueue-d-refresh-timestamp-init>) `min_timestamp = timestamp_t {}`
-    + #line-label(<line-ltqueue-d-refresh-timestamp-read>) `read(Timestamps + enqueuer_order, &min_timestamp)`
+    + #line-label(<line-ltqueue-d-refresh-timestamp-read>) `read(Timestamps + enqueuer_rank, &min_timestamp)`
     + #line-label(<line-ltqueue-d-refresh-timestamp-extract>) `{old_timestamp, old_version} = min_timestamp                                 `
     + #line-label(<line-ltqueue-d-refresh-timestamp-init-front>) `front = (data_t {}, timestamp_t {})`
-    + #line-label(<line-ltqueue-d-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(&Spscs[enqueuer_order], &front)`
+    + #line-label(<line-ltqueue-d-refresh-timestamp-read-front>) `is_empty = !spsc_readFront(&Spscs[enqueuer_rank], &front)`
     + #line-label(<line-ltqueue-d-refresh-timestamp-check-empty>) *if* `(is_empty)`
-      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-max>) *return* `cas(Timestamps + enqueuer_order,
+      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-max>) *return* `cas(Timestamps + enqueuer_rank,
 timestamp_t {old_timestamp, old_version},
 timestamp_t {MAX_TIMESTAMP, old_version + 1})`
     + #line-label(<line-ltqueue-d-refresh-timestamp-else>) *else*
-      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-front>) *return* `cas(Timestamps + enqueuer_order,
+      + #line-label(<line-ltqueue-d-refresh-timestamp-cas-front>) *return* `cas(Timestamps + enqueuer_rank,
 timestamp_t {old_timestamp, old_version},
 timestamp_t {front.timestamp, old_version + 1})`
   ],
@@ -680,8 +679,8 @@ We first introduce the types and shared variables utilized in Slotqueue.
         + The rank of the dequeuer.
       + `Process_count`: `uint64_t`
         + The number of enqueuers.
-      + `Spscs`: *array* of `spsc_t` with `Process_count` entries.
-        + The entry at index $i$ corresponds to the `Spsc` at the enqueuer with an order of $i$.
+      + `Spscs`: An *array* of `spsc_t` with `Process_count` entries.
+        + The entry at index $i$ corresponds to the `Spsc` at the process with a rank of $i$.
   ]
 ]
 
@@ -702,7 +701,7 @@ Initially, the enqueuer and the dequeuer are initialized as follows.
       + Initialize `Process_count`.
       + Initialize `Counter` to 0.
       + Initialize the `Slots` array with size equal to the number of enqueuers and every entry is initialized to `MAX_TIMESTAMP`.
-      + Initialize the `Spscs` array, the `i`-th entry corresponds to the `Spsc` variable of the enqueuer of order `i`.
+      + Initialize the `Spscs` array, the `i`-th entry corresponds to the `Spsc` variable of the process of rank `i`.
   ]
 ]
 
@@ -736,19 +735,18 @@ To enqueue a value, `enqueue` first obtains a timestamp by FAA-ing the distribut
     booktabs: true,
     numbered-title: [`bool refreshEnqueue(timestamp_t ts)`],
   )[
-    + #line-label(<line-slotqueue-refresh-enqueue-order>) `enqueuer_order = enqueueOrder(Self_rank)                                     `
-    + #line-label(<line-slotqueue-refresh-enqueue-init-front>) `front = (data_t {}, timestamp_t {})`
+    + #line-label(<line-slotqueue-refresh-enqueue-init-front>) `front = (data_t {}, timestamp_t {})                                       `
     + #line-label(<line-slotqueue-refresh-enqueue-read-front>) `success = spsc_readFront(Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-1>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-early-success>) *return* `true`
     + #line-label(<line-slotqueue-refresh-enqueue-init-old_timestamp>) `old_timestamp = timestamp_t {}`
-    + #line-label(<line-slotqueue-refresh-enqueue-read-slot>) `read(Slots + enqueuer_order, &old_timestamp)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-slot>) `read(Slots + Self_rank, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-enqueue-read-front-2>) `success = spsc_readFront(Spsc, &front)`
     + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-2>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
     + #line-label(<line-slotqueue-refresh-enqueue-check-2>) *if* `(new_timestamp != ts)`
       + #line-label(<line-slotqueue-refresh-enqueue-mid-success>) *return* `true`
-    + #line-label(<line-slotqueue-refresh-enqueue-cas>) *return* `cas(Slots + enqueuer_order,
+    + #line-label(<line-slotqueue-refresh-enqueue-cas>) *return* `cas(Slots + Self_rank,
     old_timestamp,
     new_timestamp)`
   ],
@@ -817,13 +815,12 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
     booktabs: true,
     numbered-title: [`refreshDequeue(rank: int)` *returns* `bool`],
   )[
-    + #line-label(<line-slotqueue-refresh-dequeue-get-order>) `enqueuer_order = rank                                                 `
     + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp>) `old_timestamp = timestamp_t {}`
-    + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `read(Slots + enqueuer_order, &old_timestamp)`
+    + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `read(Slots + rank, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-dequeue-init-front>) `front = (data_t {}, timestamp_t {})`
-    + #line-label(<line-slotqueue-refresh-dequeue-read-front>) `success = spsc_readFront(Spscs[enqueuer_order], &front)`
+    + #line-label(<line-slotqueue-refresh-dequeue-read-front>) `success = spsc_readFront(&Spscs[rank], &front)`
     + #line-label(<line-slotqueue-refresh-dequeue-calc-timestamp>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
-    + #line-label(<line-slotqueue-refresh-dequeue-cas>) *return* `cas(Slots + enqueuer_order,
+    + #line-label(<line-slotqueue-refresh-dequeue-cas>) *return* `cas(Slots + rank,
     old_timestamp,
     new_timestamp)`
   ],
