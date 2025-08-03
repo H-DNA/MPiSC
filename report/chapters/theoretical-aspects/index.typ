@@ -25,16 +25,16 @@ In this section, we formalize the notion of correct concurrent algorithms (@line
 
 We will base our proofs on these formalisms to prove the algorithms' correctness.
 
-Our system consists of a set of sequential processes that communicate through a collection of shared objects. Processes are asynchronous, so that each process may run at their own pace. Each object has a type, defining a set of posisble values and operations that manipulate that object.
+Our system consists of a set of sequential processes that communicate through a collection of shared objects. Processes are asynchronous, so that each process may run at their own pace. Each object has a type, defining a set of possible values and operations that manipulate that object.
 
 === Linearizability <linearizability>
 
 This section provides the formal definition of linearizability, which was not given in @correctness-condition. Our formalism is based on Herlihy and Wing's notion introduced in @herlihy-linearizability and @herlihy-axioms. Specification and verification of linearizable objects (queues) will be deferred to @axiomatic-spec and @linearizability-verification.
 
 An execution of a concurrent system is modeled by a history, which is a finite sequence of operation _invocation_ and _response events_ @herlihy-axioms:
-- An invocation is of the form `x op(args*) A` where `x` is the object names, `op` is the operation name, `arg*` is the list of arguments and `A` is the name of a process.
-- A response is of the form `x term(res*) A` where `x` is the object names, `term` is the termination status (which is assumed to be `Ok` in this thesis for normal termination), `res*` is the list of results and `A` is the name of a process.
-A response event _matches_ an invocation event if their object names and process names are the same. If there is no matching response event for an invocation event, the response event is said to be _pending_. $C o m p l e t e(H)$ is a history obtained from a history $H$ by removing all pending events in it.
+- An invocation is of the form `x op(args*) A` where `x` is the object name, `op` is the operation name, `arg*` is the list of arguments and `A` is the name of a process.
+- A response is of the form `x term(res*) A` where `x` is the object name, `term` is the termination status (which is assumed to be `Ok` in this thesis for normal termination), `res*` is the list of results and `A` is the name of a process.
+A response event _matches_ an invocation event if their object names and process names are the same. If there is no matching response event for an invocation event, the invocation event is said to be _pending_. $C o m p l e t e(H)$ is a history obtained from a history $H$ by removing all pending events in it.
 
 A history is _sequential_ when it begins with an invocation event, and every invocation event is paired with a corresponding response event that follows it (with the exception that the final invocation may not yet have its response).
 
@@ -44,9 +44,9 @@ Given a history H, we can extract two types of subsequences:
 
 Two histories $H$ and $H'$ are considered equivalent when their process subhistories are identical for every process $P$.
 
-We assume all history to be _well-formed_, that is the history $H$ such that $H|P$ is sequential for every $P$.
+We assume all histories to be _well-formed_, that is the history $H$ such that $H|P$ is sequential for every $P$.
 
-An _operation_ $e$ within a history is defined as a pair composed of an invocation $i n v (e)$ and the subsequent matching response $r e s(e)$. Operation $e_0$ _lies within_ operation $e_1$ in history $H$ if $e_1$'s invocation comes first, then $e_0$'s invocation, then $e_0$'s response, and finally $e_1$'s response. Operation $e_0$ _precedes_ operation $e_1$ is $e_0$'s response comes before $e_1$'s invocation. A history $H$ induces a precedence strict partial order $prec_H$ on operations. That is, $e_0 prec e_1$ iff $e_0$ precedes $e_1$.
+An _operation_ $e$ within a history is defined as a pair composed of an invocation $i n v (e)$ and the subsequent matching response $r e s(e)$. Operation $e_0$ _lies within_ operation $e_1$ in history $H$ if $e_1$'s invocation comes first, then $e_0$'s invocation, then $e_0$'s response, and finally $e_1$'s response. Operation $e_0$ _precedes_ operation $e_1$ if $e_0$'s response comes before $e_1$'s invocation. A history $H$ induces a precedence strict partial order $prec_H$ on operations. That is, $e_0 prec e_1$ iff $e_0$ precedes $e_1$.
 
 #definition(
   name: [Linearizability @herlihy-axioms],
