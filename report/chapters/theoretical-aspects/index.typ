@@ -131,7 +131,7 @@ We assume the SPSC's capacity is bounded by a positive number $C a p a c i t y$.
 
 ==== Axiomatic specification for dLTQueue and Slotqueue
 
-In dLTQueue and Slotqueue, we maintain a number of distributed SPSC queue. The reason we need a separate axiomatic specification for dLTQueue and Slotqueue is because some enqueues may fail while the other can succeed as some local SPSC queues are full while some are not. We assume the local SPSC queue's capacity is bounded by a positive number $C a p a c i t y$. We have the following two axioms for our MPSC queue and the trait for our queue values.
+In dLTQueue and Slotqueue, we maintain a number of distributed SPSC queues. The reason we need a separate axiomatic specification for dLTQueue and Slotqueue is because some enqueues may fail while the other can succeed as some local SPSC queues are full while some are not. We assume the local SPSC queue's capacity is bounded by a positive number $C a p a c i t y$. We have the following two axioms for our MPSC queue and the trait for our queue values.
 
 - Axiom $E M$:
 
