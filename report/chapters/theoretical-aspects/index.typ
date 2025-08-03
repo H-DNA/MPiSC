@@ -21,9 +21,9 @@ This section discusses the correctness and progress guarantee properties of the 
 
 == Preliminaries
 
-In this section, we formalize the notion of correct concurrent algorithms and harmless ABA problem. We will base our proofs on these formalisms to prove their correctness.
+In this section, we formalize the notion of harmless ABA problem (@ABA-safety) and correct concurrent algorithms (@linearizability). Verifying the correctness of concurrent queues involves us giving a sequential queue specification based on the Larch interface specification @guttag1985family (@larch), the Owicki-Gries formal method for reasoning about concurrent algorithms @owicki (@owicki-gries), Herlihy and Wing's method for verifying linearizability @herlihy-axioms (@linearizability-verification).
 
-=== Linearizability
+We will base our proofs on these formalisms to prove the algorithms' correctness.
 
 === ABA-safety <ABA-safety>
 
@@ -47,6 +47,14 @@ Not every ABA problem is unsafe. We formalize in this section which ABA problem 
   - Any successful CAS-sequence by an invocation of $m$ after reordering must not overlap with a successful modification instruction on the same variable.
   - After reordering, all method calls' response events on the concurrent object $S$ stay the same.
 ]
+
+=== Linearizability <linearizability>
+
+=== Larch interface specification of queues <larch>
+
+=== The Owicki-Gries method <owicki-gries>
+
+=== Verifying linearizability <linearizability-verification>
 
 == Theoretical proofs of the distributed SPSC
 

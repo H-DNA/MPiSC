@@ -381,3 +381,49 @@ michael1996simple:
     isbn: "0897918002"
   page-range: 267-275
   doi: "10.1145/248052.248106"
+
+herlihy-axioms:
+  type: conference
+  title: "Axioms for concurrent objects"
+  author:
+    - Herlihy, M. P.
+    - Wing, J. M.
+  date: 1987
+  parent:
+    type: proceedings
+    title: "Proceedings of the 14th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages"
+    publisher: Association for Computing Machinery
+    location: New York, NY, USA
+    isbn: "0897912152"
+  page-range: 13-26
+  url: "https://doi.org/10.1145/41625.41627"
+  doi: "10.1145/41625.41627"
+
+owicki:
+  type: article
+  title: "An axiomatic proof technique for parallel programs I"
+  author:
+    - Owicki, S.
+    - Gries, D.
+  date: 1976
+  parent:
+    type: periodical
+    title: "Acta Informatica"
+  volume: 6
+  page-range: 319-340
+  doi: "10.1007/BF00268134"
+
+guttag1985family:
+  type: article
+  title: "The Larch Family of Specification Languages"
+  author:
+    - Guttag, J. V.
+    - Horning, J. J.
+    - Wing, J. M.
+  date: 1985-09
+  parent:
+    type: periodical
+    title: "IEEE Software"
+  volume: 2
+  issue: 5
+  page-range: 24-36
