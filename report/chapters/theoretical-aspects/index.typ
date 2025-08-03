@@ -21,7 +21,7 @@ This section discusses the correctness and progress guarantee properties of the 
 
 == Preliminaries
 
-In this section, we formalize the notion of correct concurrent algorithms (@linearizability). Verifying the correctness of concurrent queues involves us giving a sequential queue specification based on the Larch interface specification @guttag1985family (@larch), Herlihy and Wing's method for verifying linearizability @herlihy-axioms (@linearizability-verification), the Owicki-Gries formal method for reasoning about concurrent algorithms @owicki (@owicki-gries). Finally, we formulate the definition of harmless ABA problem in @ABA-safety.
+In this section, we formalize the notion of correct concurrent algorithms (@linearizability). Verifying the correctness of concurrent queues involves us giving a sequential queue specification based on the Larch interface specification @guttag1985family (@axiomatic-spec), Herlihy and Wing's method for verifying linearizability @herlihy-axioms (@linearizability-verification), the Owicki-Gries formal method for reasoning about concurrent algorithms @owicki (@owicki-gries). Finally, we formulate the definition of harmless ABA problem in @ABA-safety.
 
 We will base our proofs on these formalisms to prove the algorithms' correctness.
 
@@ -29,7 +29,7 @@ Our system consists of a set of sequential processes that communicate through a 
 
 === Linearizability <linearizability>
 
-This section provides the formal definition of linearizability, which was not given in @correctness-condition. Our formalism is based on Herlihy and Wing's notion introduced in @herlihy-linearizability and @herlihy-axioms. Specification and verification of linearizable objects (queues) will be deferred to @larch and @linearizability-verification.
+This section provides the formal definition of linearizability, which was not given in @correctness-condition. Our formalism is based on Herlihy and Wing's notion introduced in @herlihy-linearizability and @herlihy-axioms. Specification and verification of linearizable objects (queues) will be deferred to @axiomatic-spec and @linearizability-verification.
 
 An execution of a concurrent system is modeled by a history, whcih is a finite sequence of operation _invocation_ and _response events_ @herlihy-axioms:
 - An invocation is of the form `x op(args*) A` where `x` is the object names, `op` is the operation name, `arg*` is the list of arguments and `A` is the name of a process.
@@ -56,7 +56,7 @@ An _operation_ $e$ within a history is defined as a pair composed of an invocati
   In this case $S$ is called a _linearization_ of $H$.
 ]
 
-=== Larch interface specification of queues <larch>
+=== Axiomatic specification <axiomatic-spec>
 
 === Verifying linearizability <linearizability-verification>
 
