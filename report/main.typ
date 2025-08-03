@@ -43,8 +43,8 @@
 #include "/auxiliaries/cover.typ"
 #pagebreak()
 
-// #include "/auxiliaries/signature.typ"
-// #pagebreak()
+#include "/auxiliaries/signature.typ"
+#pagebreak()
 
 #include "/auxiliaries/disclaimer.typ"
 #pagebreak()
