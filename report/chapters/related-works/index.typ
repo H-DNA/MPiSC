@@ -4,7 +4,7 @@ Given our decision to adapt shared-memory data structures for creating non-block
 
 == Non-blocking shared-memory MPSC queues <shared-mem-mpscs>
 
-There exists numerous research into the design of non-blocking shared memory MPMCs and SPSCs. Interestingly, research into non-blocking MPSC queues is noticeably scarce. Although in principle, MPMC queues can be adapted for MPSC queue use cases, specialized MPSC queues can usually yield much more performance. In reality, we have only found 4 papers that are concerned with the direct support of lock-free MPSC queues: LTQueue @ltqueue, DQueue @dqueue, WRLQueue @wrlqueue, and Jiffy @jiffy. @summary-of-mpscs summarizes the characteristics of these algorithms.
+There exists numerous research into the design of non-blocking shared memory MPSCs. Interestingly, research into non-blocking MPSC queues is noticeably scarce. In reality, we have only found 4 papers that are concerned with the direct support of non-blocking MPSC queues: LTQueue @ltqueue, DQueue @dqueue, WRLQueue @wrlqueue, and Jiffy @jiffy. @summary-of-mpscs summarizes the characteristics of these algorithms.
 
 #figure(
   kind: "table",
