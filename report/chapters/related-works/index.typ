@@ -180,10 +180,10 @@ The structure of AMQueue is given in @amqueue-structure. The MPSC is split into 
 - `WriterCnt`: The number of enqueuers currently writing in this queue.
 - `Offset`: The index to the first empty entry in the queue. Note that any shared data and control variables are hosted on the dequeuer.
 
-To determine which queue to read and write, the `QueueNum` binary variable is used. If `QueueNum` is 0, then the first queue is being actively written by enqueuers, and the second queue is being reserved for the dequeuer, and vice versa.
+To determine which queue to read and write, the `QueueNum` binary variable is used. If `QueueNum` is `0`, then the first queue is being actively written by enqueuers, and the second queue is being reserved for the dequeuer, and vice versa.
 
 #figure(
-  image("/static/images/amqueue.png"),
+  image("/static/images/amqueue.png", height: 40%),
   caption: [AMQueue's structure.],
 ) <amqueue-structure>
 
