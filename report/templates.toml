@@ -5,12 +5,11 @@ major = "Computer Science"
 faculty = "Computer Science and Engineer"
 
 [course]
-name = "Specialized Project"
-id = "CO4029"
+name = "Capstone Project"
+id = "CO4337"
 
 [committee]
-id = "6 - Đồ án chuyên ngành"
-secretary = "Nguyễn Phương Duy"
+id = ""
 
 [[teachers]] 
 title = "Dr."
