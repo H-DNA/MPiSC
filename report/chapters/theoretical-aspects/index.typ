@@ -249,6 +249,112 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
 
 ==== Linearizability
 
+#figure(
+  kind: "algorithm",
+  supplement: [Procedure],
+  pseudocode-list(
+    line-numbering: i => i,
+    booktabs: true,
+    numbered-title: [`bool enqueue(data_t v)`],
+  )[
+    + #line-label(<line-slotqueue-enqueue-obtain-timestamp-verify>) `timestamp = faa(Counter, 1)                                           `
+    + #line-label(<line-slotqueue-enqueue-spsc-verify>) *if* `(!spsc_enqueue(&Spsc, (v, timestamp)))` *return* `false`
+    + #line-label(<line-slotqueue-enqueue-refresh-verify>) *if* `(!refreshEnqueue(timestamp))`
+      + #line-label(<line-slotqueue-enqueue-retry-verify>) `refreshEnqueue(timestamp)`
+    + #line-label(<line-slotqueue-enqueue-success-verify>) *return* `true`
+  ],
+) <slotqueue-enqueue-verify>
+
+#figure(
+  kind: "algorithm",
+  supplement: [Procedure],
+  pseudocode-list(
+    line-numbering: i => i + 5,
+    booktabs: true,
+    numbered-title: [`bool refreshEnqueue(timestamp_t ts)`],
+  )[
+    + #line-label(<line-slotqueue-refresh-enqueue-init-front-verify>) `front = (data_t {}, timestamp_t {})                                       `
+    + #line-label(<line-slotqueue-refresh-enqueue-read-front-verify>) `success = spsc_readFront(Spsc, &front)`
+    + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-verify>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
+    + #line-label(<line-slotqueue-refresh-enqueue-check-1-verify>) *if* `(new_timestamp != ts)`
+      + #line-label(<line-slotqueue-refresh-enqueue-early-success-verify>) *return* `true`
+    + #line-label(<line-slotqueue-refresh-enqueue-init-old_timestamp-verify>) `old_timestamp = timestamp_t {}`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-slot-verify>) `read(Slots + Self_rank, &old_timestamp)`
+    + #line-label(<line-slotqueue-refresh-enqueue-read-front-2-verify>) `success = spsc_readFront(Spsc, &front)`
+    + #line-label(<line-slotqueue-refresh-enqueue-calc-timestamp-2-verify>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
+    + #line-label(<line-slotqueue-refresh-enqueue-check-2-verify>) *if* `(new_timestamp != ts)`
+      + #line-label(<line-slotqueue-refresh-enqueue-mid-success-verify>) *return* `true`
+    + #line-label(<line-slotqueue-refresh-enqueue-cas-verify>) *return* `cas(Slots + Self_rank,
+    old_timestamp,
+    new_timestamp)`
+  ],
+) <slotqueue-refresh-enqueue-verify>
+
+#figure(
+  kind: "algorithm",
+  supplement: [Procedure],
+  pseudocode-list(
+    line-numbering: i => i + 18,
+    booktabs: true,
+    numbered-title: [`bool dequeue(data_t* output)`],
+  )[
+    + #line-label(<line-slotqueue-dequeue-read-rank-verify>) `rank = readMinimumRank()                                                    `
+    + #line-label(<line-slotqueue-dequeue-check-empty-verify>) *if* `(rank == DUMMY_RANK)`
+      + #line-label(<line-slotqueue-dequeue-fail-verify>) *return* `false`
+    + #line-label(<line-slotqueue-dequeue-init-output-verify>) `output_with_timestamp = (data_t {}, timestamp_t {})`
+    + #line-label(<line-slotqueue-dequeue-spsc-verify>) *if* `(!spsc_dequeue(Spsc, &output_with_timestamp))`
+      + #line-label(<line-slotqueue-dequeue-spsc-fail-verify>) *return* `false`
+    + #line-label(<line-slotqueue-dequeue-extract-data-verify>) `*output = output_with_timestamp.data`
+    + #line-label(<line-slotqueue-dequeue-refresh-verify>) *if* `(!refreshDequeue(rank))`
+      + #line-label(<line-slotqueue-dequeue-retry-verify>) `refreshDequeue(rank)`
+    + #line-label(<line-slotqueue-dequeue-success-verify>) *return* `true`
+  ],
+) <slotqueue-dequeue-verify>
+
+#figure(
+  kind: "algorithm",
+  supplement: [Procedure],
+  pseudocode-list(
+    line-numbering: i => i + 28,
+    booktabs: true,
+    numbered-title: [`uint64_t readMinimumRank()`],
+  )[
+    + #line-label(<line-slotqueue-read-min-rank-init-buffer-verify>) `buffered_slots = timestamp_t[Process_count] {}                       `
+    + #line-label(<line-slotqueue-read-min-rank-scan1-loop-verify>) *for* `index` *in* `0..Process_count`
+      + #line-label(<line-slotqueue-read-min-rank-scan1-read-verify>) `read(Slots + index, &bufferred_slots[index])`
+    + #line-label(<line-slotqueue-read-min-rank-check-empty-verify>) *if* every entry in `bufferred_slots` is `MAX_TIMESTAMP`
+      + #line-label(<line-slotqueue-read-min-rank-return-empty-verify>) *return* `DUMMY_RANK`
+    + #line-label(<line-slotqueue-read-min-rank-find-min-verify>) *let* `rank` be the index of the first slot that contains the minimum timestamp among `bufferred_slots`
+    + #line-label(<line-slotqueue-read-min-rank-scan2-loop-verify>) *for* `index` *in* `0..rank`
+      + #line-label(<line-slotqueue-read-min-rank-scan2-read-verify>) `read(Slots + index, &bufferred_slots[index])`
+    + #line-label(<line-slotqueue-read-min-rank-init-min-verify>) `min_timestamp = MAX_TIMESTAMP`
+    + #line-label(<line-slotqueue-read-min-rank-check-loop-verify>) *for* `index` *in* `0..rank`
+      + #line-label(<line-slotqueue-read-min-rank-get-timestamp-verify>) `timestamp = buffered_slots[index]`
+      + #line-label(<line-slotqueue-read-min-rank-compare-verify>) *if* `(min_timestamp < timestamp)`
+        + #line-label(<line-slotqueue-read-min-rank-update-rank-verify>) `min_rank = index`
+        + #line-label(<line-slotqueue-read-min-rank-update-timestamp-verify>) `min_timestamp = timestamp`
+    + #line-label(<line-slotqueue-read-min-rank-return-verify>) *return* `min_rank`
+  ],
+) <slotqueue-read-minimum-rank-verify>
+
+#figure(
+  kind: "algorithm",
+  supplement: [Procedure],
+  pseudocode-list(
+    line-numbering: i => i + 45,
+    booktabs: true,
+    numbered-title: [`refreshDequeue(rank: int)` *returns* `bool`],
+  )[
+    + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp-verify>) `old_timestamp = timestamp_t {}                                       `
+    + #line-label(<line-slotqueue-refresh-dequeue-read-slot-verify>) `read(Slots + rank, &old_timestamp)`
+    + #line-label(<line-slotqueue-refresh-dequeue-init-front-verify>) `front = (data_t {}, timestamp_t {})`
+    + #line-label(<line-slotqueue-refresh-dequeue-read-front-verify>) `success = spsc_readFront(&Spscs[rank], &front)`
+    + #line-label(<line-slotqueue-refresh-dequeue-calc-timestamp-verify>) `new_timestamp = success ? front.timestamp : MAX_TIMESTAMP`
+    + #line-label(<line-slotqueue-refresh-dequeue-cas-verify>) *return* `cas(Slots + rank,
+    old_timestamp,
+    new_timestamp)`
+  ],
+) <slotqueue-refresh-dequeue-verify>
 
 === Progress guarantee
 
