@@ -32,8 +32,8 @@ Our system consists of a set of sequential processes that communicate through a 
 This section provides the formal definition of linearizability, which was not given in @correctness-condition. Our formalism is based on Herlihy and Wing's notion introduced in @herlihy-linearizability and @herlihy-axioms. Specification and verification of linearizable objects (queues) will be deferred to @axiomatic-spec and @linearizability-verification.
 
 An execution of a concurrent system is modeled by a history, which is a finite sequence of operation _invocation_ and _response events_ @herlihy-axioms:
-- An invocation is of the form `x op(args*) A` where `x` is the object name, `op` is the operation name, `arg*` is the list of arguments and `A` is the name of a process.
-- A response is of the form `x term(res*) A` where `x` is the object name, `term` is the termination status (which is assumed to be `Ok` in this thesis for normal termination), `res*` is the list of results and `A` is the name of a process.
+- An invocation is of the form $x" "o p(a r g s^*) A$ where $x$ is the object name, $o p$ is the operation name, $a r g^*$ is the list of arguments and $A$ is the name of a process.
+- A response is of the form $x" "t e r m(r e s^*) A$ where $x$ is the object name, $t e r m$ is the termination status (which is assumed to be $O k$ in this thesis for normal termination), $r e s^*$ is the list of results and $A$ is the name of a process.
 A response event _matches_ an invocation event if their object names and process names are the same. If there is no matching response event for an invocation event, the invocation event is said to be _pending_. $C o m p l e t e(H)$ is a history obtained from a history $H$ by removing all pending events in it.
 
 A history is _sequential_ when it begins with an invocation event, and every invocation event is paired with a corresponding response event that follows it (with the exception that the final invocation may not yet have its response).
@@ -48,9 +48,11 @@ We assume all histories to be _well-formed_, that is the history $H$ such that $
 
 An _operation_ $e$ within a history is defined as a pair composed of an invocation $i n v (e)$ and the subsequent matching response $r e s(e)$. Operation $e_0$ _lies within_ operation $e_1$ in history $H$ if $e_1$'s invocation comes first, then $e_0$'s invocation, then $e_0$'s response, and finally $e_1$'s response. Operation $e_0$ _precedes_ operation $e_1$ if $e_0$'s response comes before $e_1$'s invocation. A history $H$ induces a precedence strict partial order $prec_H$ on operations. That is, $e_0 prec e_1$ iff $e_0$ precedes $e_1$.
 
+Given an axiomatic specification (@axiomatic-spec) of a sequential data structure, it is easy to verify the legality of a sequential history. However, axiomatic specifications can not be used alone to verify non-sequential histories. Therefore, the notion of linearizability is introduced.
+
 #definition(
   name: [Linearizability @herlihy-axioms],
-)[A history $H$ is _linearizable_ if can be extended (by appending zero or more events) to some history $H'$ such that:
+)[A history $H$ is _linearizable_ if it can be extended (by appending zero or more events) to some history $H'$ such that:
   - $C o m p l e t e(H')$ is equivalent to some legal sequential history $S$.
   - $prec_(H') subset.eq prec_S$.
   In this case $S$ is called a _linearization_ of $H$.
@@ -58,7 +60,86 @@ An _operation_ $e$ within a history is defined as a pair composed of an invocati
 
 === Axiomatic specification <axiomatic-spec>
 
-=== Verifying linearizability <linearizability-verification>
+As can be seen in the definition of linearizable history in @linearizability, there should be a criteria to judge the legality of sequential histories. In this thesis, we use axiomatic specifications of data structures to specify legal sequential histories.
+
+Because we are concerned with queues, in this section, we give two axiomatic specifications of queues, one for the distributed SPSC queue in @distributed-spsc, one for dLTQueue and Slotqueue. The reason we need two specifications for queues will be clear shortly.
+
+==== Axiomatic specification for the simple distributed SPSC queue
+
+We assume the SPSC's capacity is bounded by a positive number $C a p a c i t y$. Hence, we have the following two axioms for our SPSC queue and the trait for our SPSC queue values.
+
+- Axiom $E S$:
+#align(center)[
+  $\{t r u e\}$
+
+  $E n q(e) \/ O k()$
+
+  $\{(i s F u l l (q) arrow q' = q) and (not i s F u l l (q) arrow q' = i n s(q, e))\}$
+]
+- Axiom $D S$:
+#align(center)[
+  $\{t r u e\}$
+
+  $D e q(e) \/ O k(e)$
+
+  $\{(i s E m p(q) arrow q' = q) and (not i s E m p(q) arrow q' = r e s t(q)) and e = f i r s t(q)\}$
+]
+
+- #text[Trait for SPSC queue values:
+
+    SPSC_Vals: *trait*
+
+    *introduces*
+    #align(center)[
+      $e m p: arrow Q$
+
+      $i n s: Q, E arrow Q$
+
+      $f i r s t: Q arrow E union \{$*nil*$\}$
+
+      $r e s t: Q arrow Q$
+
+      $i s E m p: Q arrow$ *Bool*
+
+      $l e n: Q arrow$ *Int*
+
+      $i s F u l l: Q arrow$ *Bool*
+    ]
+    *constrains* $Q$ *so that*
+    $Q$ *generated by* $[ e m p, i n s]$
+
+    *for all* $q:Q, e: E$
+    #align(center)[
+      $f i r s t(e m p)=$ *nil*
+
+      $f i r s t(i n s (q, e))=$ *if* $i s E m p(q)$ *then* $e$ *else* $f i r s t(q)$
+
+      $r e s t(e m p) = e m p$
+
+      $r e s t(i n s(q, e)) =$ *if* $i s E m p(q)$ *then* $e m p$ *else* $i n s(r e s t(q), e)$
+
+      $i s E m p(e m p) =$ *true*
+
+      $i s E m p(i n s(q, e)) =$ *false*
+
+      $l e n(e m p) = 0$
+
+      $l e n(i n s(q, e)) = l e n(q) + 1$
+
+      $i s F u l l(q) = (l e n (q) = C a p a c i t y)$
+    ]]
+
+==== Axiomatic specification for dLTQueue and Slotqueue
+
+In dLTQueue and Slotqueue, we maintain a number of distributed SPSC queue. The reason we need a separate axiomatic specification for dLTQueue and Slotqueue is because some enqueues may fail while the other can succeed as some local SPSC queues are full while some are not. We assume the local SPSC queue's capacity is bounded by a positive number $C a p a c i t y$. We have the following two axioms for our MPSC queue and the trait for our queue values.
+
+- Axiom $E M$:
+
+- Axiom $D M$:
+
+- Trait for queue values:
+
+=== Linearizability Verification <linearizability-verification>
 
 === The Owicki-Gries method <owicki-gries>
 
