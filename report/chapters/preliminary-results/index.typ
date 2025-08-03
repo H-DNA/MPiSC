@@ -38,10 +38,10 @@ We use three MPSC queue algorithms as benchmarking baselines:
 
 Our microbenchmark is as follows:
 
-    All processes share a single MPSC; one of the processes is a dequeuer, and the rest are enqueuers.
-    The enqueuers enqueue a total of $10^4$ elements.
-    The dequeuer dequeues $10^4$ elements.
-    For MPSC, the MPSC is warmed up before the dequeuer starts.
+-   All processes share a single MPSC; one of the processes is a dequeuer, and the rest are enqueuers.
+-   The enqueuers enqueue a total of $10^4$ elements.
+-   The dequeuer dequeues $10^4$ elements.
+-   For MPSC, the MPSC is warmed up before the dequeuer starts.
 
 We measure the latency and throughput of the enqueue and dequeue operations. This microbenchmark is repeated 5 times for each algorithm, and we take the mean of the results.
 
