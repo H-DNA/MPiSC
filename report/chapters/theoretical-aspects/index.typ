@@ -249,6 +249,7 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
 
 ==== Linearizability
 
+
 === Progress guarantee
 
 Notice that every loop in Slotqueue is bounded, and no method have to wait for another. Therefore, Slotqueue is wait-free.

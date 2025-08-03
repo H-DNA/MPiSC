@@ -316,7 +316,7 @@ We first present the tree-structure utility procedures that are shared by both t
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 1,
+    line-numbering: i => i,
     booktabs: true,
     numbered-title: [`uint32_t parent(uint32_t index)`],
   )[
@@ -330,7 +330,7 @@ We first present the tree-structure utility procedures that are shared by both t
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 2,
+    line-numbering: i => i + 1,
     booktabs: true,
     numbered-title: [`vector<uint32_t> children(uint32_t index)`],
   )[
@@ -353,7 +353,7 @@ Similarly, `children` returns all indices of the child tree nodes given the node
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 12,
+    line-numbering: i => i + 11,
     booktabs: true,
     numbered-title: [`uint32_t leafNodeIndex(uint32_t enqueuer_rank)`],
   )[
@@ -369,7 +369,7 @@ The followings are the enqueuer procedures.
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 13,
+    line-numbering: i => i + 12,
     booktabs: true,
     numbered-title: [`bool enqueue(data_t value)`],
   )[
@@ -391,7 +391,7 @@ To enqueue a value, `enqueue` first obtains a count by FAA-ing the distributed c
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 18,
+    line-numbering: i => i + 17,
     booktabs: true,
     numbered-title: [`void propagate`#sub(`e`)`()`],
   )[
@@ -414,7 +414,7 @@ The `propagate`#sub(`e`) procedure is responsible for propagating SPSC updates u
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 28,
+    line-numbering: i => i + 27,
     booktabs: true,
     numbered-title: [`bool refreshTimestamp`#sub(`e`)`()`],
   )[
@@ -440,7 +440,7 @@ The `refreshTimestamp`#sub(`e`) procedure is responsible for updating the `Min_t
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 37,
+    line-numbering: i => i + 36,
     booktabs: true,
     numbered-title: [`bool refreshNode`#sub(`e`)`(uint32_t current_node_index)`],
   )[
@@ -471,7 +471,7 @@ The `refreshNode`#sub(`e`) procedure is responsible for updating the ranks of th
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 53,
+    line-numbering: i => i + 52,
     booktabs: true,
     numbered-title: [`bool refreshLeaf`#sub(`e`)`()`],
   )[
@@ -496,7 +496,7 @@ The followings are the dequeuer procedures.
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 61,
+    line-numbering: i => i + 60,
     booktabs: true,
     numbered-title: [`bool dequeue(data_t* output)`],
   )[
@@ -520,7 +520,7 @@ To dequeue a value, `dequeue` reads the rank stored inside the root node (@line-
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 71,
+    line-numbering: i => i + 70,
     booktabs: true,
     numbered-title: [`void propagate`#sub(`d`)`(uint32_t enqueuer_rank)`],
   )[
@@ -543,7 +543,7 @@ The `propagate`#sub(`d`) procedure is similar to `propagate`#sub(`e`), with appr
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 81,
+    line-numbering: i => i + 80,
     booktabs: true,
     numbered-title: [`bool refreshTimestamp`#sub(`d`)`(uint32_t enqueuer_rank)`],
   )[
@@ -569,7 +569,7 @@ The `refreshTimestamp`#sub(`d`) procedure is similar to `refreshTimestamp`#sub(`
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 91,
+    line-numbering: i => i + 90,
     booktabs: true,
     numbered-title: [`bool refreshNode`#sub(`d`)`(uint32_t current_node_index)`],
   )[
@@ -600,7 +600,7 @@ The `refreshNode`#sub(`d`) procedure is similar to `refreshNode`#sub(`e`), with 
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 107,
+    line-numbering: i => i + 106,
     booktabs: true,
     numbered-title: [`bool refreshLeaf`#sub(`d`)`(uint32_t enqueuer_rank)`],
   )[
@@ -713,7 +713,7 @@ The enqueuer operations are given as follows.
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 2,
+    line-numbering: i => i,
     booktabs: true,
     numbered-title: [`bool enqueue(data_t v)`],
   )[
@@ -731,7 +731,7 @@ To enqueue a value, `enqueue` first obtains a timestamp by FAA-ing the distribut
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 7,
+    line-numbering: i => i + 5,
     booktabs: true,
     numbered-title: [`bool refreshEnqueue(timestamp_t ts)`],
   )[
@@ -760,7 +760,7 @@ The dequeuer operations are given as follows.
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 20,
+    line-numbering: i => i + 18,
     booktabs: true,
     numbered-title: [`bool dequeue(data_t* output)`],
   )[
@@ -783,7 +783,7 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 30,
+    line-numbering: i => i + 28,
     booktabs: true,
     numbered-title: [`uint64_t readMinimumRank()`],
   )[
@@ -811,7 +811,7 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
   kind: "algorithm",
   supplement: [Procedure],
   pseudocode-list(
-    line-numbering: i => i + 47,
+    line-numbering: i => i + 45,
     booktabs: true,
     numbered-title: [`refreshDequeue(rank: int)` *returns* `bool`],
   )[
