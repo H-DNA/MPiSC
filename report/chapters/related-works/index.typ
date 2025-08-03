@@ -1,10 +1,10 @@
 = Related works <related-works>
 
-Given our decision to adapt shared-memory data structures for creating non-blocking distributed MPSC queues with BCL CoreX (@bclx-library), we next explore existing non-blocking shared-memory MPSC queues in @shared-mem-mpscs. Additionally, we analyze current distributed MPSC queue implementations in @dmpsc-related-works to establish appropriate benchmark comparisons. Following this analysis, we selected LTQueue as our candidate shared-memory MPSC queue for distributed adaptation and chose AMQueue as our primary benchmark reference.
+Given our decision to adapt shared-memory data structures for creating non-blocking distributed MPSC queues with BCL CoreX (@bclx-library), we next explore existing non-blocking shared-memory MPSC queues in @shared-mem-mpscs. Additionally, we analyze current distributed MPSC queue implementations in @dmpsc-related-works to establish benchmarking baseline. Based on this analysis, we selected LTQueue as our candidate shared-memory MPSC queue for distributed adaptation and chose AMQueue as our primary benchmark reference.
 
 == Non-blocking shared-memory MPSC queues <shared-mem-mpscs>
 
-There exists numerous research into the design of non-blocking shared memory MPMCs and SPSCs. Interestingly, research into non-blocking MPSC queues is noticeably scarce. Although in principle, MPMC queues and SPSC queues can both be adapted for MPSC queue use cases, specialized MPSC queues can usually yield much more performance. In reality, we have only found 4 papers that are concerned with the direct support of lock-free MPSC queues: LTQueue @ltqueue, DQueue @dqueue, WRLQueue @wrlqueue, and Jiffy @jiffy. @summary-of-mpscs summarizes the characteristics of these algorithms.
+There exists numerous research into the design of non-blocking shared memory MPMCs and SPSCs. Interestingly, research into non-blocking MPSC queues is noticeably scarce. Although in principle, MPMC queues can be adapted for MPSC queue use cases, specialized MPSC queues can usually yield much more performance. In reality, we have only found 4 papers that are concerned with the direct support of lock-free MPSC queues: LTQueue @ltqueue, DQueue @dqueue, WRLQueue @wrlqueue, and Jiffy @jiffy. @summary-of-mpscs summarizes the characteristics of these algorithms.
 
 #figure(
   kind: "table",
