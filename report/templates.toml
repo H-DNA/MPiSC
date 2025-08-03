@@ -1,6 +1,6 @@
 title = "Studying and developing nonblocking distributed MPSC queues"
 institution = "Vietnam National University - Ho Chi Minh City University of Technology"
-semester = 242
+semester = 243
 major = "Computer Science"
 faculty = "Computer Science and Engineer"
 
@@ -19,6 +19,9 @@ name = "Diệp Thanh Đăng"
 [[teachers]] 
 title = "Assoc. Prof. Dr."
 name = "Thoại Nam"
+
+[reviewer]
+name = ""
 
 [[students]]
 name = "Đỗ Nguyễn An Huy"

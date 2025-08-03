@@ -43,7 +43,7 @@ Major: Computer Science
   columns: (1fr, 1fr),
   rows: (2em, auto),
   column-gutter: .2cm,
-  align(right, [*thesis committee*:\ *supervisors*:]),
+  align(right, [*thesis committee*:\ *supervisors*:\ \ *reviewer*:]),
   align(
     left,
     [
@@ -51,7 +51,8 @@ Major: Computer Science
       #for s in t.at("teachers") [
         #s.at("title")
         #s.at("name")\
-      ]
+      ]\
+      #t.reviewer.name
     ],
   ),
 )
