@@ -31,7 +31,7 @@ Our system consists of a set of sequential processes that communicate through a 
 
 This section provides the formal definition of linearizability, which was not given in @correctness-condition. Our formalism is based on Herlihy and Wing's notion introduced in @herlihy-linearizability and @herlihy-axioms. Specification and verification of linearizable objects (queues) will be deferred to @axiomatic-spec and @linearizability-verification.
 
-An execution of a concurrent system is modeled by a history, whcih is a finite sequence of operation _invocation_ and _response events_ @herlihy-axioms:
+An execution of a concurrent system is modeled by a history, which is a finite sequence of operation _invocation_ and _response events_ @herlihy-axioms:
 - An invocation is of the form `x op(args*) A` where `x` is the object names, `op` is the operation name, `arg*` is the list of arguments and `A` is the name of a process.
 - A response is of the form `x term(res*) A` where `x` is the object names, `term` is the termination status (which is assumed to be `Ok` in this thesis for normal termination), `res*` is the list of results and `A` is the name of a process.
 A response event _matches_ an invocation event if their object names and process names are the same. If there is no matching response event for an invocation event, the response event is said to be _pending_. $C o m p l e t e(H)$ is a history obtained from a history $H$ by removing all pending events in it.
