@@ -815,7 +815,7 @@ To dequeue a value, `dequeue` first reads the rank of the enqueuer whose slot cu
     booktabs: true,
     numbered-title: [`refreshDequeue(rank: int)` *returns* `bool`],
   )[
-    + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp>) `old_timestamp = timestamp_t {}`
+    + #line-label(<line-slotqueue-refresh-dequeue-init-timestamp>) `old_timestamp = timestamp_t {}                                       `
     + #line-label(<line-slotqueue-refresh-dequeue-read-slot>) `read(Slots + rank, &old_timestamp)`
     + #line-label(<line-slotqueue-refresh-dequeue-init-front>) `front = (data_t {}, timestamp_t {})`
     + #line-label(<line-slotqueue-refresh-dequeue-read-front>) `success = spsc_readFront(&Spscs[rank], &front)`
