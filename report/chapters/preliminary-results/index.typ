@@ -30,9 +30,9 @@ Following this discussion, we should aim to discover and optimize highly contend
 
 We use three MPSC queue algorithms as benchmarking baselines:
 
-    dLTQueue + our custom SPSC: Our most optimized version of LTQueue while still keeping the core algorithm intact.
-    Slotqueue + our custom SPSC: Our modification to dLTQueue to obtain a more optimized distributed version of LTQueue.
-    AMQueue @amqueue: A hosted bounded MPSC queue algorithm, already detailed in @dmpsc-related-works.
+- dLTQueue + our custom SPSC: Our most optimized version of LTQueue while still keeping the core algorithm intact.
+- Slotqueue + our custom SPSC: Our modification to dLTQueue to obtain a more optimized distributed version of LTQueue.
+- AMQueue @amqueue: A hosted bounded MPSC queue algorithm, already detailed in @dmpsc-related-works.
 
 == Microbenchmark program
 
@@ -95,8 +95,6 @@ We run the producer-consumer microbenchmark on 1 to 4 nodes to measure both the 
   image("../../static/images/total_throughput_comparison.png"),
   caption: [Microbenchmark results for total throughput.],
 ) <total-benchmark>
-
-Here is the corrected version of the provided Typst paragraphs with grammatical and spelling mistakes fixed, while keeping line breaks, wordings, and meanings intact:
 
 The most evident thing is that @total-benchmark and @dequeue-throughput-benchmark are almost identical. This supports our claim that in an MPSC queue, the performance is bottlenecked by the dequeuer.
 
