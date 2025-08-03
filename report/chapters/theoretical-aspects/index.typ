@@ -21,7 +21,7 @@ This section discusses the correctness and progress guarantee properties of the 
 
 == Preliminaries
 
-In this section, we formalize the notion of correct concurrent algorithms and harmless ABA problem. We will base our proofs on these formalisms to prove their correctness. We also provide a simple way to theoretically model our queues' performance.
+In this section, we formalize the notion of correct concurrent algorithms and harmless ABA problem. We will base our proofs on these formalisms to prove their correctness.
 
 === Linearizability
 
@@ -48,25 +48,25 @@ Not every ABA problem is unsafe. We formalize in this section which ABA problem 
   - After reordering, all method calls' response events on the concurrent object $S$ stay the same.
 ]
 
-=== Theoretical performance
-
-We use a simple performance model, projecting the performance of a distributed algorithm by calculating or approximating how many remote operations and local operations are made in the usual case. An example of our model has been shown in the dequeue and enqueue time-complexity rows of @summary-of-distributed-mpscs.
-
 == Theoretical proofs of the distributed SPSC
 
-=== Correctness
+This section establishes the correctness and fault-tolerance of our simple distributed SPSC introduced in @distributed-spsc. Specifically, @spsc-correctness proves there's no ABA problem and unsafe memory reclamation in our SPSC queue and it is linearizable; @spsc-progress-guarantee proves that our SPSC queue is wait-free; @spsc-performance discusses the overhead involved in each SPSC operation.
 
-==== ABA problem
+=== Correctness <spsc-correctness>
+
+First, we prove that there's no ABA problem in our SPSC queue in @spsc-aba-problem. Second, we prove that there's no potential memory errors when executing our SPSC queue in @spsc-safe-memory. Finally and most importantly, we prove that our SPSC queue is linearizable in @spsc-linearizable.
+
+==== ABA problem <spsc-aba-problem>
 
 There's no CAS instruction in our simple distributed SPSC, so there's no potential for ABA problem.
 
-==== Memory reclamation
+==== Memory reclamation <spsc-safe-memory>
 
 There's no dynamic memory allocation and deallocation in our simple distributed SPSC, so it is memory-safe.
 
-==== Linearizability
+==== Linearizability <spsc-linearizable>
 
-=== Progress guarantee
+=== Progress guarantee <spsc-progress-guarantee>
 
 Our simple distributed SPSC is wait-free:
 - `spsc_dequeue` (@spsc-dequeue) does not execute any loops or wait for any other method calls.
@@ -74,7 +74,7 @@ Our simple distributed SPSC is wait-free:
 - `spsc_readFront`#sub(`e`) (@spsc-enqueue-readFront) does not execute any loops or wait for any other method calls.
 - `spsc_readFront`#sub(`d`) (@spsc-dequeue-readFront) does not execute any loops or wait for any other method calls.
 
-=== Theoretical performance
+=== Theoretical performance <spsc-performance>
 
 A summary of the theoretical performance of our simple SPSC is provided in @theo-perf-spsc. In the following discussion, $R$ means remote operations and $L$ means local operations.
 
@@ -161,8 +161,6 @@ We will refer `propagate`#sub(`e`) and `propagate`#sub(`d`) as `propagate` if th
 #definition[`refreshLeaf`#sub(`d`) (@ltqueue-dequeue-refresh-leaf) is said to start its *CAS-sequence* if it finishes @line-ltqueue-d-refresh-leaf-read. `refreshLeaf`#sub(`d`) is said to end its *CAS-sequence* if it finishes @line-ltqueue-d-refresh-leaf-cas.]
 
 === Correctness
-
-This section establishes the correctness of dLTQueue introduced in @dLTQueue.
 
 ==== ABA problem
 
