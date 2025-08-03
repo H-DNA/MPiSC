@@ -603,7 +603,7 @@ Notice that Slotqueue pushes the memory reclamation problem to the underlying SP
     + #line-label(<line-slotqueue-dequeue-check-empty-verify>) *if* `(rank == DUMMY_RANK)`
       + #line-label(<line-slotqueue-dequeue-fail-verify>) *return* `false`
     + #line-label(<line-slotqueue-dequeue-init-output-verify>) `output_with_timestamp = (data_t {}, timestamp_t {})`
-    + #line-label(<line-slotqueue-dequeue-spsc-verify>) *if* `(!spsc_dequeue(Spsc, &output_with_timestamp))`
+    + #line-label(<line-slotqueue-dequeue-spsc-verify>) *if* `(!spsc_dequeue(&Spscs[rank], &output_with_timestamp))`
       + #line-label(<line-slotqueue-dequeue-spsc-fail-verify>) *return* `false`
     + #line-label(<line-slotqueue-dequeue-extract-data-verify>) `*output = output_with_timestamp.data`
     + #line-label(<line-slotqueue-dequeue-refresh-verify>) *if* `(!refreshDequeue(rank))`

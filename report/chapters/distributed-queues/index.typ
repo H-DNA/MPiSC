@@ -768,7 +768,7 @@ The dequeuer operations are given as follows.
     + #line-label(<line-slotqueue-dequeue-check-empty>) *if* `(rank == DUMMY_RANK)`
       + #line-label(<line-slotqueue-dequeue-fail>) *return* `false`
     + #line-label(<line-slotqueue-dequeue-init-output>) `output_with_timestamp = (data_t {}, timestamp_t {})`
-    + #line-label(<line-slotqueue-dequeue-spsc>) *if* `(!spsc_dequeue(Spsc, &output_with_timestamp))`
+    + #line-label(<line-slotqueue-dequeue-spsc>) *if* `(!spsc_dequeue(&Spscs[rank], &output_with_timestamp))`
       + #line-label(<line-slotqueue-dequeue-spsc-fail>) *return* `false`
     + #line-label(<line-slotqueue-dequeue-extract-data>) `*output = output_with_timestamp.data`
     + #line-label(<line-slotqueue-dequeue-refresh>) *if* `(!refreshDequeue(rank))`
