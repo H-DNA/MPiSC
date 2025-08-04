@@ -125,7 +125,7 @@ Not every ABA problem is unsafe. We formalize in this section which ABA problem 
 
 == Theoretical proofs of the distributed SPSC
 
-This section establishes the correctness and fault-tolerance of our simple distributed SPSC introduced in @distributed-spsc. Specifically, @spsc-correctness proves there is no ABA problem and unsafe memory reclamation in our SPSC queue and it is linearizable; @spsc-progress-guarantee proves that our SPSC queue is wait-free; @spsc-performance discusses the overhead involved in each SPSC operation.
+This section establishes the correctness and fault-tolerance of our simple distributed SPSC queue introduced in @distributed-spsc. Specifically, @spsc-correctness proves there is no ABA problem and unsafe memory reclamation in our SPSC queue and it is linearizable; @spsc-progress-guarantee proves that our SPSC queue is wait-free; @spsc-performance discusses the overhead involved in each SPSC queue's operation.
 
 === Correctness <spsc-correctness>
 
