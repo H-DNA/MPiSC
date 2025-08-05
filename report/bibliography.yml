@@ -427,3 +427,43 @@ guttag1985family:
   volume: 2
   issue: 5
   page-range: 24-36
+
+tss:
+  type: article
+  title: "A Scalable, Correct Time-Stamped Stack"
+  author:
+    - Dodds, Mike
+    - Haas, Andreas
+    - Kirsch, Christoph M.
+  date: 2015-01
+  parent:
+    type: periodical
+    title: "SIGPLAN Not."
+    publisher: Association for Computing Machinery
+    location: New York, NY, USA
+    issn: "0362-1340"
+  volume: 50
+  issue: 1
+  page-range: 233-246
+  url: "https://doi.org/10.1145/2775051.2676963"
+  doi: "10.1145/2775051.2676963"
+
+aspect-proof:
+  type: conference
+  title: "Aspect-Oriented Linearizability Proofs"
+  author:
+    - Henzinger, T. A.
+    - Sezgin, A.
+    - Vafeiadis, V.
+  date: 2013
+  parent:
+    type: proceedings
+    title: "CONCUR 2013 – Concurrency Theory"
+    editor:
+      - D'Argenio, P. R.
+      - Melgratti, H.
+    publisher: Springer
+    location: Berlin, Heidelberg
+    series: "Lecture Notes in Computer Science"
+    volume: 8052
+  doi: "10.1007/978-3-642-40184-8_18"

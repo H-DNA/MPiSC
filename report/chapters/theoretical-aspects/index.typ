@@ -21,7 +21,7 @@ This section discusses the correctness and progress guarantee properties of the 
 
 == Preliminaries <preliminaries>
 
-In this section, we will formalize some ideas so that we can reason about them. Specificallt, we specifies the notion of correct concurrent algorithms in @linearizability. verifying the correctness of concurrent queues involves us giving a sequential queue specification in @sequential-specification. Finally, we formulate the definition of harmless ABA problem in @ABA-safety. We will base our proofs on these formalisms to prove the algorithms' correctness.
+In this section, we will formalize some ideas so that we can reason about them. Specificallt, we specifies the notion of correct concurrent algorithms in @linearizability. Verifying the correctness of concurrent queues involves us giving two sequential queue specifications in @sequential-specification. We then give an MPSC queue theorem for establish the linearizability of dLTQueue and Slotqueue. Finally, we formulate the definition of harmless ABA problem in @ABA-safety. We will base our proofs on these formalisms to prove the algorithms' correctness.
 
 Our system consists of a set of sequential processes that communicate through a collection of shared objects. Processes are asynchronous, so that each process may run at their own pace. Each object has a type, defining a set of possible values and operations that manipulate that object.
 
@@ -44,7 +44,7 @@ Two histories $H$ and $H'$ are considered equivalent when their process subhisto
 
 We assume all histories to be _well-formed_, that is the history $H$ such that $H|P$ is sequential for every $P$.
 
-An _operation_ $e$ within a history is defined as a pair composed of an invocation $i n v (e)$ and the subsequent matching response $r e s(e)$. Operation $e_0$ _lies within_ operation $e_1$ in history $H$ if $e_1$'s invocation comes first, then $e_0$'s invocation, then $e_0$'s response, and finally $e_1$'s response. Operation $e_0$ _precedes_ operation $e_1$ if $e_0$'s response comes before $e_1$'s invocation. A history $H$ induces a precedence strict partial order $prec_H$ on operations. That is, $e_0 prec e_1$ iff $e_0$ precedes $e_1$.
+An _operation_ $e$ within a history is defined as a pair composed of an invocation $i n v (e)$ and the subsequent matching response $r e s(e)$. Operation $e_0$ _lies within_ operation $e_1$ in history $H$ if $e_1$'s invocation comes first, then $e_0$'s invocation, then $e_0$'s response, and finally $e_1$'s response. Operation $e_0$ _precedes_ operation $e_1$ if $e_0$'s response comes before $e_1$'s invocation. A history $H$ induces a precedence strict partial order $arrow^(p r)_(H)$ on operations. That is, $e_0 arrow^(p r)_(H) e_1$ iff $e_0$ precedes $e_1$. When the context is clear, we write $arrow^(p r)$ instead of $arrow^(p r)_(H)$ for brevity.
 
 A sequential specification is a function that dictates whether a sequential history is legal. Given an sequential specification of a sequential data structure, it is easy to verify the legality of a sequential history. However, sequential specifications can not be used alone to verify non-sequential histories. Therefore, the notion of linearizability is introduced.
 
@@ -52,7 +52,7 @@ A sequential specification is a function that dictates whether a sequential hist
   name: [Linearizability @herlihy-axioms],
 )[A history $H$ is _linearizable_ if it can be extended (by appending zero or more events) to some history $H'$ such that:
   - $C o m p l e t e(H')$ is equivalent to some legal sequential history $S$.
-  - $prec_(H') subset.eq prec_S$.
+  - $arrow^(p r)_H subset.eq arrow^(p r)_S$.
   In this case $S$ is called a _linearization_ of $H$.
 ]
 
@@ -77,6 +77,36 @@ We define the queue methods as abstract operations on the abstract state. Assume
 - $D e q u e u e()$: If $sigma = []$ then return $N U L L$. Otherwise, $sigma = e dot sigma'$. Update $sigma$ to $sigma'$ and return $e$.
 
 The most noticeable difference from the sequential specification of the SPSC queue is that $E n q u e u e$ and $l e n$ are now defined on a per-process basis. This is due to the fact that dLTQueue and Slotqueue keeps a bounded SPSC queue in each process. 
+
+=== MPSC queue theorem
+
+In this section, we specify and prove a theorem for establishing dLTQueue and Slotqueue's correctness. Our theorem draws inspiration from @aspect-proof and @tss, in that we specify some properties that is sufficient for a linearizable history. However, @tss provided a theorem for stacks while @aspect-proof could only work with unbounded queues. Therefore, we provide a similar set of properties that work with bounded queues that maintain local buffers.
+
+We consider a history $H$. Denote:
+- $M$ as the set of operations in $H$.
+- For $m in M$, $D e q(m)$ as the statement that $m$ is a dequeue and similarly for $E n q(m)$.
+- $E m p(d)$ as a statement that $d$ is a dequeue that returns $N U L L$.
+- $F a i l e d(e)$ as the statement that $e$ is a failed enqueue.
+- $t a r g e t(m)$ as the target SPSC queue that the method $m$ affects.
+- $c$ as the capacity of the local SPSC queues.
+
+In addition to the precedence partial order $->^(p r)$, there is also a relation $->^(v a l)$ on $M$ where $e ->^(v a l) d$ if $e$ is an enqueue, $d$ is a dequeue and $d$ dequeues $e$'s value.
+
+For simplicity, we assume every enqueue enqueues a unique value.
+
+We append to $H$ a large enough number of dequeues so that any successfully-enqueued values should have been dequeued out. If we can prove that this extended history $H'$ is linearizable, then we can also prove that $H$ is linearizable.
+
+Consider the following properties that the history $H'$ can possess. The $=>$ is taken to mean the $->$ connective in propositional logic.
++ Every successful enqueue is matched by a dequeue: $forall e in M. E n q (e) and not F a i l e d(e) => exists d in M. e ->^(v a l) d$.
++ A failed enqueue cannot be matched: $forall e, d in M. F a i l e d(e) => e arrow.not^(v a l) d$.
++ A dequeue can not dequeue a value out of nowhere: $forall d in M. D e q(d) and not E m p(d) => exists e in M. e->^(v a l) d$.
++ A dequeue can not dequeue a future value: $forall e,d in M.e->^(v a l) d => d arrow.not^(p r)e$.
++ An enqueue can only be matched once by a dequeue: $forall e,d_1,d_2 in M.e ->^(v a l) d_1 and e ->^(v a l) d_2 =>d_1 = d_2$.
++ A dequeue can only be matched once by an enqueue: $forall e_1,e_2,d in M.e_1 ->^(v a l) d and e_2 ->^(v a l) d =>e_1 = e_2$.
++ Enqueued values are dequeued in order: $forall e_1, e_2 in M. e_1 ->^(p r) e_2 and e_2 ->^(v a l) d_2 => exists d_1. e_1 ->^(v a l) d_1 and d_2 arrow.not^(p r) d_1$.
++ A dequeue cannot return $N U L L$ when the queue is not empty: $forall d in M. D e q(d) and (exists e, d' in M. e ->^(p r) d and e ->^(v a l) d' and d ->^(p r) d') => not E m p(d)$.
++ An enqueue cannot fail when the local SPSC queue is not full: $forall e in M$, if there are fewer than $c$ enqueues $e_i in M$ such that $not F a i l e d(e_i) and t a r g e t(e_i) = t a r g e t(e) and e_i ->^(p r) e and forall d_i. (e_i ->^(v a l) d_i => d_i arrow.not^(p r) e)$ then $not F a i l e d(e)$.
++ An enqueue fails when the local SPSC queue is full: $forall e in M$, if there are at least $c$ enqueues $e_i in M$ such that $not F a i l e d(e_i) and t a r g e t(e_i) = t a r g e t(e) and e_i ->^(p r) e and forall d_i. (e_i ->^(v a l) d_i => e arrow^(p r) d_i)$ then $F a i l e d(e)$.
 
 === ABA-safety <ABA-safety>
 
