@@ -58,6 +58,26 @@ A sequential specification is a function that dictates whether a sequential hist
 
 === Sequential specification of queues <sequential-specification>
 
+This section gives two sequential specifications of queues, one for our simple SPSC queue and one for dLTQueue and Slotqueue. Even though our SPSC queue and MPSC queues are both FIFO queues so that a single sequential specification may seem suffice, the situation when an enqueue fails differ between the two cases. The difference will be clear in a moment.
+
+==== Sequential specification of the SPSC queue
+
+Let the abstract state $sigma$ have the form of $[v_0, v_1, dots]$, where $v_0$, $v_1$, $dots$ are the values currently in the queue. Let $l e n(sigma)$ represent the queue's length. Let $dot$ represent concatenation.
+
+We define the SPSC queue methods as abstract operations on the abstract state. Assume that $C a p a c i t y$ is a constant known in advance.
+- $E n q u e u e(e)$: If $l e n(sigma)=C a p a c i t y$ then $sigma' = sigma$ else $sigma = sigma' dot e$. Update $sigma$ to $sigma'$.
+- $D e q u e u e()$: If $sigma = []$ then return $N U L L$. Otherwise, $sigma = e dot sigma'$. Update $sigma$ to $sigma'$ and return $e$.
+
+==== Sequential specification of dLTQueue and Slotqueue
+
+Let the abstract state $sigma$ have the form of $[(v_0, t_0), (v_1, t_1), dots]$, where $v_0$, $v_1$, $dots$ are the values currently in the queue and $t_0$, $t_1$, $dots$ are process identifiers. Let $l e n_i (sigma)$ represent the queue's length after filtering out tuples with process identifier equal $i$. Let $dot$ represent concatenation.
+
+We define the queue methods as abstract operations on the abstract state. Assume that $C a p a c i t y$ is a constant known in advance.
+- $E n q u e u e_i (e)$: If $l e n_i (sigma)=C a p a c i t y$ then $sigma' = sigma$ else $sigma = sigma' dot e$. Update $sigma$ to $sigma'$.
+- $D e q u e u e()$: If $sigma = []$ then return $N U L L$. Otherwise, $sigma = e dot sigma'$. Update $sigma$ to $sigma'$ and return $e$.
+
+The most noticeable difference from the sequential specification of the SPSC queue is that $E n q u e u e$ and $l e n$ are now defined on a per-process basis. This is due to the fact that dLTQueue and Slotqueue keeps a bounded SPSC queue in each process. 
+
 === ABA-safety <ABA-safety>
 
 == Theoretical proofs of the distributed SPSC <spsc-proof>
