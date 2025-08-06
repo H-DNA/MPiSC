@@ -30,7 +30,7 @@ This fact has an important implication: when we are talking about the characteri
 - If the underlying SPSC queue is unbounded, the resulting MPSC queue is also unbounded.
 - The theoretical performance of dLTQueue and Slotqueue has to be coupled with the theoretical performance of the underlying SPSC.
 
-The characteristics of these MPSC queue wrappers are summarized in @summary-of-distributed-mpscs. For benchmarking purposes, we use a baseline distributed SPSC introduced in @distributed-spsc in combination with the MPSC queue wrappers. The characteristics of the resulting MPSC queues are also shown in @summary-of-distributed-mpscs, which will be proven in @theoretical-aspects.
+The characteristics of these MPSC queue wrappers are summarized in @summary-of-distributed-mpscs. For benchmarking purposes, we use a baseline distributed SPSC introduced in @distributed-spsc in combination with the MPSC queue wrappers. The characteristics of the resulting MPSC queues are also shown in @summary-of-distributed-mpscs.//, which will be proven in @theoretical-aspects.
 
 #figure(
   kind: "table",

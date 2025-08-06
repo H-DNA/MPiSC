@@ -132,7 +132,7 @@ We prove the following theorem.
 
   We prove that $->^(a u x)$ is irreflexive. Suppose the contrary, this must be caused by a cycle in $prec$. Suppose the shortest cycle is $m_0 prec dots prec m_k prec m_0$.
 
-  If there are at least two dequeues in the cycle $d_0$ and $d_1$. Because our history is an MPSC queue, $d_0$ and $d_1$ must be related by $->^(p r)$, suppose $d_0 ->^(p r) d_1$. If these two dequeues are not adjacent, we can create a smaller cycle by removing the elements between $d_0$ and $d_1$ in the old cycle. This means there are at most two dequeues in the cycle, and these two dequeues must be adjacent.
+  If there are at least two dequeues in the cycle $d_0$ and $d_1$. Because our history is an MPSC queue, $d_0$ and $d_1$ must be related by $->^(p r)$, suppose $d_0 ->^(p r) d_1$. If these two dequeues are not adjacent, we can create a smaller cycle by removing the operations between $d_0$ and $d_1$ in the old cycle. This means there are at most two dequeues in the cycle, and these two dequeues must be adjacent.
 
   We can easily prove that the cycle cannot have length 1 or 2. Suppose the cycle has length at least 3.
 
@@ -141,7 +141,7 @@ We prove the following theorem.
   - If rule 3 was applied, then by the assumption, $m_i ->^(v a l) d_i$ and $m_(i+1) ->^(v a l) d_(i+1)$ and $d_i ->^(p r) d_(i+1)$.
   Therefore, $d_i ->^(p r) d_(i+1)$. This means $d_0 ->^(p r) d_1 ->^(p r) dots ->^(p r) d_k ->^(p r) d_0$, which is a contradiction.
 
-  If there is one dequeue in the cycle. Without loss of generality, suppose $m_0$ is a dequeue.
+  If there is one dequeue in the cycle. Without loss of generality, suppose $m_0$ is a dequeue. Then, $m_0 prec m_1$ because rule 1 or rule 4 was applied and $m_k prec m_0$ because rule 1, rule 2 or rule 5 was applied.
 
   (\*\*)
 ]
