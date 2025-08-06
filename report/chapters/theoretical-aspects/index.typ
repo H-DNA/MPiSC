@@ -76,14 +76,18 @@ We define the queue methods as abstract operations on the abstract state. Assume
 - $E n q u e u e_i (e)$: If $l e n_i (sigma)=C a p a c i t y$ then $sigma' = sigma$ else $sigma = sigma' dot e$. Update $sigma$ to $sigma'$.
 - $D e q u e u e()$: If $sigma = []$ then return $N U L L$. Otherwise, $sigma = e dot sigma'$. Update $sigma$ to $sigma'$ and return $e$.
 
-The most noticeable difference from the sequential specification of the SPSC queue is that $E n q u e u e$ and $l e n$ are now defined on a per-process basis. This is due to the fact that dLTQueue and Slotqueue keeps a bounded SPSC queue in each process. 
+The most noticeable difference from the sequential specification of the SPSC queue is that $E n q u e u e$ and $l e n$ are now defined on a per-process basis. This is due to the fact that dLTQueue and Slotqueue keeps a bounded SPSC queue in each process.
 
 === MPSC queue theorem
 
 In this section, we specify and prove a theorem for establishing dLTQueue and Slotqueue's correctness. Our theorem draws inspiration from @aspect-proof and @tss, in that we specify some properties that is sufficient for a linearizable history. However, @tss provided a theorem for stacks while @aspect-proof could only work with unbounded queues. Therefore, we provide a similar set of properties that work with bounded queues that maintain local buffers.
 
-We consider a history $H$. Denote:
-- $M$ as the set of operations in $H$.
+We consider a history $H$.
+
+We append to $H$ a large enough number of dequeues so that any successfully-enqueued values should have been dequeued out. If we can prove that this extended history $H'$ is linearizable, then we can also prove that $H$ is linearizable.
+
+Denote:
+- $M$ as the set of operations in $H'$.
 - For $m in M$, $D e q(m)$ as the statement that $m$ is a dequeue and similarly for $E n q(m)$.
 - $E m p(d)$ as a statement that $d$ is a dequeue that returns $N U L L$.
 - $F a i l e d(e)$ as the statement that $e$ is a failed enqueue.
@@ -94,19 +98,53 @@ In addition to the precedence partial order $->^(p r)$, there is also a relation
 
 For simplicity, we assume every enqueue enqueues a unique value.
 
-We append to $H$ a large enough number of dequeues so that any successfully-enqueued values should have been dequeued out. If we can prove that this extended history $H'$ is linearizable, then we can also prove that $H$ is linearizable.
-
-Consider the following properties that the history $H'$ can possess. The $=>$ is taken to mean the $->$ connective in propositional logic.
+Consider the following properties that the history $H'$ can possess. The $=>$ is taken to mean the $->$ connective in propositional logic so as not to confuse with $->^(p r)$ and $->^(v a l)$.
 + Every successful enqueue is matched by a dequeue: $forall e in M. E n q (e) and not F a i l e d(e) => exists d in M. e ->^(v a l) d$.
 + A failed enqueue cannot be matched: $forall e, d in M. F a i l e d(e) => e arrow.not^(v a l) d$.
 + A dequeue can not dequeue a value out of nowhere: $forall d in M. D e q(d) and not E m p(d) => exists e in M. e->^(v a l) d$.
 + A dequeue can not dequeue a future value: $forall e,d in M.e->^(v a l) d => d arrow.not^(p r)e$.
 + An enqueue can only be matched once by a dequeue: $forall e,d_1,d_2 in M.e ->^(v a l) d_1 and e ->^(v a l) d_2 =>d_1 = d_2$.
 + A dequeue can only be matched once by an enqueue: $forall e_1,e_2,d in M.e_1 ->^(v a l) d and e_2 ->^(v a l) d =>e_1 = e_2$.
-+ Enqueued values are dequeued in order: $forall e_1, e_2 in M. e_1 ->^(p r) e_2 and e_2 ->^(v a l) d_2 => exists d_1. e_1 ->^(v a l) d_1 and d_2 arrow.not^(p r) d_1$.
++ Enqueued values are dequeued in order: $forall e_1, e_2, d_1, d_2 in M. e_1 ->^(p r) e_2 and e_2 ->^(v a l) d_2 and  e_1 ->^(v a l) d_1 => d_1 arrow^(p r) d_2$.
 + A dequeue cannot return $N U L L$ when the queue is not empty: $forall d in M. D e q(d) and (exists e, d' in M. e ->^(p r) d and e ->^(v a l) d' and d ->^(p r) d') => not E m p(d)$.
 + An enqueue cannot fail when the local SPSC queue is not full: $forall e in M$, if there are fewer than $c$ enqueues $e_i in M$ such that $not F a i l e d(e_i) and t a r g e t(e_i) = t a r g e t(e) and e_i ->^(p r) e and forall d_i. (e_i ->^(v a l) d_i => d_i arrow.not^(p r) e)$ then $not F a i l e d(e)$.
 + An enqueue fails when the local SPSC queue is full: $forall e in M$, if there are at least $c$ enqueues $e_i in M$ such that $not F a i l e d(e_i) and t a r g e t(e_i) = t a r g e t(e) and e_i ->^(p r) e and forall d_i. (e_i ->^(v a l) d_i => e arrow^(p r) d_i)$ then $F a i l e d(e)$.
+
+We prove the following theorem.
+
+#theorem[
+  If all complete histories (after appending a large enough number of dequeues) produced by a wait-free MPSC queue satisfy the 10 properties above, the queue is linearizable.
+]
+
+#proof[
+  Consider any history $H$ produced by the wait-free MPSC queue. If we can prove that $H$ is linearizable, then the queue is linearizable. Because the queue is wait-free, we can assume that there is no pending method call in the history. We then append to $H$ a large enough number of dequeues so that there shall be no unmatched enqueues and obtain $H'$. If we can prove that $H'$ is linearizable, then $H$ is also linearizable. Due to the assumption in the theorem, $H'$ satisfy the 10 properties above.
+
+  We consider a relation $prec$ on $M$ constructed as follows.
+  + If $X ->^(p r) Y$ then $X prec Y$.
+  + If $e ->^(v a l) d$ then $e prec d$.
+  + If $e_1 ->^(v a l) d_1$ and $e_2 ->^(v a l) d_2$ and $d_1 ->^(p r) d_2$ then $e_1 prec e_2$.
+  + If $E m p(d)$ and $d ->^(p r) d'$ and $e->^(v a l) d'$ then $d prec e$.
+  + If $F a i l e d (e)$ and $e arrow.not^(p r) d$ and $d arrow.not^(p r)e$ then $e prec d$.
+
+  (\*) We will prove that the transitive closure of $prec$, $->^(a u x)$, is a strict partial order.
+
+  By definition, $->^(a u x)$ is transitive.
+
+  We prove that $->^(a u x)$ is irreflexive. Suppose the contrary, this must be caused by a cycle in $prec$. Suppose the shortest cycle is $m_0 prec dots prec m_k prec m_0$.
+
+  If there are at least two dequeues in the cycle $d_0$ and $d_1$. Because our history is an MPSC queue, $d_0$ and $d_1$ must be related by $->^(p r)$, suppose $d_0 ->^(p r) d_1$. If these two dequeues are not adjacent, we can create a smaller cycle by removing the elements between $d_0$ and $d_1$ in the old cycle. This means there are at most two dequeues in the cycle, and these two dequeues must be adjacent.
+
+  We can easily prove that the cycle cannot have length 1 or 2. Suppose the cycle has length at least 3.
+
+  If there is no dequeue in the cycle, the cycle consists of only enqueues. Note that two enqueues can only be related via rule 1 or rule 3.
+  - If rule 1 was applied, or $m_i ->^(p r) m_(i+1)$, by property 7, $m_i ->^(v a l) d_i$ and $m_(i+1) ->^(v a l) d_(i+1)$ and $d_i ->^(p r) d_(i+1)$.
+  - If rule 3 was applied, then by the assumption, $m_i ->^(v a l) d_i$ and $m_(i+1) ->^(v a l) d_(i+1)$ and $d_i ->^(p r) d_(i+1)$.
+  Therefore, $d_i ->^(p r) d_(i+1)$. This means $d_0 ->^(p r) d_1 ->^(p r) dots ->^(p r) d_k ->^(p r) d_0$, which is a contradiction.
+
+  If there is one dequeue in the cycle. Without loss of generality, suppose $m_0$ is a dequeue.
+
+  (\*\*)
+]
 
 === ABA-safety <ABA-safety>
 
