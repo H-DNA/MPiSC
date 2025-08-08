@@ -139,6 +139,16 @@ We prove the following theorem.
   - If rule 3 was applied, then by the assumption, $m_i ->^(v a l) d_i$ and $m_(i+1) ->^(v a l) d_(i+1)$ and $d_i ->^(p r) d_(i+1)$.
   Therefore, $d_i ->^(p r) d_(i+1)$. This means $d_0 ->^(p r) d_1 ->^(p r) dots ->^(p r) d_k ->^(p r) d_0$, which is a contradiction.
 
+  If there is one dequeue in the cycle, without loss of generality, suppose $m_0$ is a dequeue. Then, $m_0 prec m_1$ because rule 1 or rule 4 was applied and $m_k prec m_0$ because rule 1, rule 2 or rule 5 was applied.
+  - If rule 1 was applied to obtain $m_0 prec m_1$ and rule 1 was applied to obtain $m_k prec m_0$, because $->^(p r)$ is a partial order, that means $m_k ->^(p r) m_1$ or $m_k prec m_1$, which results in a shorter cycle, a contradiction.
+  - If rule 1 was applied to obtain $m_0 prec m_1$ and rule 2 was applied to obtain $m_k prec m_0$, that means $m_0 ->^(p r) m_1$ and $m_k ->^(v a l) m_0$.
+    - Suppose $m_1 ->^(v a l) d$, then by property 4, $d arrow.not^(p r) m_1$. Furthermore, $m_0 ->^(p r) m_1$. Because $m_0$ is also a dequeue, then we must have $m_0 ->^(p r) d$. Because $m_k ->^(v a l) m_0$, $m_1 ->^(v a l) d$ and $m_0 ->^(p r) d$, then by rule 3, $m_k prec m_1$, which results in a shorter cycle, a contradiction.
+    - Suppose $m_1$ is a failed enqueue. Consider $m_2$. $m_1 prec m_2$ cannot be obtained via rule 1, else $m_0 ->^(p r) m_2$, which creates a shorter cycle. Therefore, $m_1 prec m_2$  must be obtained via rule 5. But then, there are 2 non-adjacent dequeues, $m_0$ and $m_2$, from which we can create a shorter cycle, a contradiction.
+  - If rule 1 was applied to obtain $m_0 prec m_1$ and rule 5 was applied to obtain $m_k prec m_0$, $m_k$ must be a failed enqueue and $m_0 ->^(p r) m_1$. Because the cycle length is at least 3, $m_(k-1)$ must be an enqueue. Then the only way for $m_(k-1)$ to be related to a failed enqueue like $m_k$ is via rule 1, or $m_(k-1) ->^(p r) m_k$. By rule 5, $m_k$ must overlap $m_0$. Because $m_0 ->^(p r) m_1$ we have $m_(k-1) ->^(p r) m_1$, which results in a shorter cycle, a contradiction.
+  - If rule 4 was applied to obtain $m_0 prec m_1$ and rule 1 was applied to obtain $m_k prec m_0$, that means $m_0$ is a failed dequeue and $m_k ->^(p r) m_0$.
+  - If rule 4 was applied to obtain $m_0 prec m_1$ and rule 2 was applied to obtain $m_k prec m_0$, that means $m_0$ is a failed dequeue (rule 4) but also matches an enqueue at the same time (rule 2), which yields a contradiction according to property 3.
+  - If rule 4 was applied to obtain $m_0 prec m_1$ and rule 5 was applied to obtain $m_k prec m_0$.
+
   (\*\*)
 ]
 
