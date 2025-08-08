@@ -21,8 +21,6 @@ This section discusses the correctness and progress guarantee properties of the 
 
 == Terminology
 
-In this section, we introduce some terminology that we will use throughout our proofs.
-
 #definition[In an SPSC/MPSC queue, an enqueue operation $e$ is said to *match* a dequeue operation $d$ if $d$ returns the value that $e$ enqueues. Similarly, $d$ is said to *match* $e$. In this case, both $e$ and $d$ are said to be *matched*.]
 
 #definition[In an SPSC/MPSC queue, an enqueue operation $e$ is said to be *unmatched* if no dequeue operation *matches* it.]
