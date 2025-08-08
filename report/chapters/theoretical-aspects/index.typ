@@ -267,6 +267,8 @@ Notice that dLTQueue pushes the memory reclamation problem to the underlying SPS
 
 ==== Linearizability
 
+We assume all enqueues succeed in this section. Note that a failed enqueue only causes the counter to increment, and does not change the queue state in any other ways.
+
 #theorem[In dLTQueue, an enqueue can only match at most one dequeue.] <ltqueue-unique-match-enqueue>
 
 #proof[A dequeue indirectly performs a value dequeue through `spsc_dequeue`. Because `spsc_dequeue` can only match one `spsc_enqueue` by another enqueue, the theorem holds.]
@@ -707,6 +709,8 @@ Both `CAS`es target some slot in the `Slots` array.
 Notice that Slotqueue pushes the memory reclamation problem to the underlying SPSC. If the underlying SPSC is memory-safe, Slotqueue is also memory-safe.
 
 ==== Linearizability
+
+We assume all enqueues succeed in this section. Note that a failed enqueue only causes the counter to increment, and does not change the queue state in any other ways.
 
 #lemma[
   Only the dequeuer and the enqueuer with rank $r$ can concurrently modify an SPSC and the slot at the $r$-th index in the `Slots` array.
