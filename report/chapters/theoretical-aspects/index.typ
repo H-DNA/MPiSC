@@ -509,7 +509,7 @@ We immediately obtain the following result.
 ] <theo:dltqueue-linearizable>
 
 #proof[
-  This follows directly from Theorem @theo:mpsc-linearizable, Theorem @theo:dltqueue-vfresh, Theorem @theo:dltqueue-vrepet, Theorem @theo:dltqueue-vord, Theorem @theo:dltqueue-vwit and Theorem @theo:dltqueue-wait-free.
+  This follows directly from @theo:mpsc-linearizable, @theo:dltqueue-vfresh, @theo:dltqueue-vrepet, @theo:dltqueue-vord, @theo:dltqueue-vwit and @theo:dltqueue-wait-free.
 ]
 
 === Progress guarantee
@@ -727,7 +727,7 @@ We assume all enqueues succeed in this section. Note that a failed enqueue only 
 #proof[
   Each enqueue would fetch-and-add the distributed counter
   and enqueue into the local SPSC an item with the timestamp obtained from the
-  counter. Applying Lemma @lemm:exclusive-access, we know that items are enqueued one at a
+  counter. Applying @lemm:exclusive-access, we know that items are enqueued one at a
   time into the SPSC. Therefore, later items are enqueued by strictly later enqueues, which
   obtain increasing timestamps. The lemma holds.
 ]
@@ -761,9 +761,9 @@ We assume all enqueues succeed in this section. Note that a failed enqueue only 
 ] <lemm:unmatched-enqueue>
 
 #proof[
-  Because the underlying SPSC queue is linearizable, take $t' < t_0$ to be the time $e$'s `spsc_enqueue` completes successfully. Because $e$ is still unmatched until $t_1$, the timestamp $c$ must be in the underlying SPSC at any time $t in [t', t_1]$. Therefore, due to Lemma @lemm:monotonic-SPSC, any `spsc_readFront` on rank $r$'s SPSC queue during $[t', t_1]$ must read out a value not greater than $c$. Consequently, any successful refresh call (`refresh_enqueue` or `refresh_dequeue`) during $[t', t_1]$ must set the slot to some value not greater than $c$. $(1)$
+  Because the underlying SPSC queue is linearizable, take $t' < t_0$ to be the time $e$'s `spsc_enqueue` completes successfully. Because $e$ is still unmatched until $t_1$, the timestamp $c$ must be in the underlying SPSC at any time $t in [t', t_1]$. Therefore, due to @lemm:monotonic-SPSC, any `spsc_readFront` on rank $r$'s SPSC queue during $[t', t_1]$ must read out a value not greater than $c$. Consequently, any successful refresh call (`refresh_enqueue` or `refresh_dequeue`) during $[t', t_1]$ must set the slot to some value not greater than $c$. $(1)$
 
-  At some time after $t'$ and before $t_0$, $e$ must enter its slot-refresh phase. Due to Lemma @lemm:refresh-enqueue, there must be a successful refresh call during $[t', t_0]$. $(2)$
+  At some time after $t'$ and before $t_0$, $e$ must enter its slot-refresh phase. Due to @lemm:refresh-enqueue, there must be a successful refresh call during $[t', t_0]$. $(2)$
 
   From $(1)$ and $(2)$, $s l o t(r, t) <= c$ for any $t in [t_0, t_1]$.
 ]
@@ -812,7 +812,7 @@ We assume all enqueues succeed in this section. Note that a failed enqueue only 
   Consider a complete history $h$. Suppose there exists a dequeue $d$ starting
   at time $t$ and returning `false` but there is an enqueue $e$ that finishes before $t$ and is still unmatched at $t$.
 
-  By Lemma @lemm:unmatched-enqueue, some slot must contain a timestamp other than `MAX_TIMESTAMP` by $t$. Therefore, when $d$ performs the slot-scan phase in `read_minimum_rank`, it must see this slot containing a non-`MAX_TIMESTAMP` and return a non-`DUMMY_RANK`. Consequently, $d$ cannot return `false` on line 10.
+  By @lemm:unmatched-enqueue, some slot must contain a timestamp other than `MAX_TIMESTAMP` by $t$. Therefore, when $d$ performs the slot-scan phase in `read_minimum_rank`, it must see this slot containing a non-`MAX_TIMESTAMP` and return a non-`DUMMY_RANK`. Consequently, $d$ cannot return `false` on line 10.
 
   We claim that inside a dequeue, before the `spsc_dequeue` on line 11, if a slot contains a non-`MAX_TIMESTAMP`, the corresponding SPSC cannot be empty. Consider the successful slot refresh call with the last slot modification instruction targeted at this slot before the `spsc_dequeue` on line 11. Because this slot refresh call sets the slot to non-`MAX_TIMESTAMP`, its `spsc_readFront` must see that the SPSC is non-empty (line 30). From the last refresh call to the current `spsc_dequeue` on line 11, no other `spsc_dequeue` can happen, so this SPSC cannot be empty when line 11 is reached. Therefore, it can never return `false` on line 12.
 
