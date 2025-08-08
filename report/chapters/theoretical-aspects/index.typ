@@ -17,143 +17,197 @@
 #show: theorem-rules
 #show: definition-rules
 
-This section discusses the correctness and progress guarantee properties of the distributed MPSC queue algorithms introduced in @distributed-queues[]. We also provide a theoretical performance model of these algorithms to predict how well they scale to multiple nodes. For preparation, first, we provide some preliminaries for understanding the details of this section in @preliminaries. We can then proceed to reason about our simple distributed SPSC queue (@spsc-proof), dLTQueue (@dltqueue-proof) and Slotqueue (@slotqueue-proof).
+This section discusses the correctness and progress guarantee properties of the distributed MPSC queue algorithms introduced in @distributed-queues[]. We also provide a theoretical performance model of these algorithms to predict how well they scale to multiple nodes.
 
-== Preliminaries <preliminaries>
+== Terminology
 
-In this section, we will formalize some ideas so that we can reason about them. Specifically, we specifies the notion of correct concurrent algorithms in @linearizability. Verifying the correctness of concurrent queues involves us giving two sequential queue specifications in @sequential-specification. We then give an MPSC queue theorem for establishing the linearizability of dLTQueue and Slotqueue. Finally, we formulate the definition of harmless ABA problem in @ABA-safety. We will base our proofs on these formalisms to prove the algorithms' correctness.
+In this section, we introduce some terminology that we will use throughout our proofs.
 
-Our system consists of a set of sequential processes that communicate through a collection of shared objects. Processes are asynchronous, so that each process may run at their own pace. Each object has a type, defining a set of possible values and operations that manipulate that object.
+#definition[In an SPSC/MPSC queue, an enqueue operation $e$ is said to *match* a dequeue operation $d$ if $d$ returns the value that $e$ enqueues. Similarly, $d$ is said to *match* $e$. In this case, both $e$ and $d$ are said to be *matched*.]
 
-=== Linearizability <linearizability>
+#definition[In an SPSC/MPSC queue, an enqueue operation $e$ is said to be *unmatched* if no dequeue operation *matches* it.]
 
-This section provides the formal definition of linearizability, which was not given in @correctness-condition. Our formalism is based on Herlihy and Wing's notion introduced in @herlihy-linearizability and @herlihy-axioms. To prove that our queues are linearizable, we have to provide a sequential specification, which will be given in the next section (@sequential-specification).
+#definition[In an SPSC/MPSC queue, a dequeue operation $d$ is said to be *unmatched* if no enqueue operation *matches* it, in other word, $d$ returns `false`.]
 
-An execution of a concurrent system is modeled by a history, which is a finite sequence of operation _invocation_ and _response events_ @herlihy-axioms:
-- An invocation is of the form $x" "o p(a r g s^*) A$ where $x$ is the object name, $o p$ is the operation name, $a r g^*$ is the list of arguments and $A$ is the name of a process.
-- A response is of the form $x" "t e r m(r e s^*) A$ where $x$ is the object name, $t e r m$ is the termination status (which is assumed to be $O k$ in this thesis for normal termination), $r e s^*$ is the list of results and $A$ is the name of a process.
-A response event _matches_ an invocation event if their object names and process names are the same. If there is no matching response event for an invocation event, the invocation event is said to be _pending_. $C o m p l e t e(H)$ is a history obtained from a history $H$ by removing all pending events in it.
+== Preliminaries
 
-A history is _sequential_ when it begins with an invocation event, and every invocation event is paired with a corresponding response event that follows it (with the exception that the final invocation may not yet have its response).
+In this section, we formalize the notion of correct concurrent algorithms and harmless ABA problem. We will base our proofs on these formalisms to prove their correctness. We also provide a simple way to theoretically model our queues' performance.
 
-Given a history H, we can extract two types of subsequences:
-- A _process subhistory_ $H|P$ contains only those events from $H$ where the process name matches $P$.
-- An _object subhistory_ $H∣x$ contains only those events from $H$ where the object name matches $x$.
+=== Linearizability
 
-Two histories $H$ and $H'$ are considered equivalent when their process subhistories are identical for every process $P$.
+Linearizability is a criteria for evaluating a concurrent algorithm's correctness. This is the model we use to prove our algorithm's correctness. Our formalization of linearizability is equivalent to that of @art-of-multiprocessor-programming by Herlihy and Shavit. However, there are some differences in our terminology.
 
-We assume all histories to be _well-formed_, that is the history $H$ such that $H|P$ is sequential for every $P$.
+For a concurrent object `S`, we can call some methods on `S` concurrently. A method call on the object `S` is said to have an *invocation event* when it starts and a *response event* when it ends.
 
-An _operation_ $e$ within a history is defined as a pair composed of an invocation $i n v (e)$ and the subsequent matching response $r e s(e)$. Operation $e_0$ _lies within_ operation $e_1$ in history $H$ if $e_1$'s invocation comes first, then $e_0$'s invocation, then $e_0$'s response, and finally $e_1$'s response. Operation $e_0$ _precedes_ operation $e_1$ if $e_0$'s response comes before $e_1$'s invocation. A history $H$ induces a precedence strict partial order $arrow^(p r)_(H)$ on operations. That is, $e_0 arrow^(p r)_(H) e_1$ iff $e_0$ precedes $e_1$. When the context is clear, we write $arrow^(p r)$ instead of $arrow^(p r)_(H)$ for brevity.
+#definition[An *invocation event* is a triple $(S, t, a r g s)$, where $S$ is the object the method is invoked on, $t$ is the timestamp of when the event happens and $a r g s$ is the arguments passed to the method call.]
 
-A sequential specification is a function that dictates whether a sequential history is legal. Given an sequential specification of a sequential data structure, it is easy to verify the legality of a sequential history. However, sequential specifications can not be used alone to verify non-sequential histories. Therefore, the notion of linearizability is introduced.
+#definition[A *response event* is a triple $(S, t, r e s)$, where $S$ is the object the method is invoked on, $t$ is the timestamp of when the event happens and $r e s$ is the results of the method call.]
 
-#definition(
-  name: [Linearizability @herlihy-axioms],
-)[A history $H$ is _linearizable_ if it can be extended (by appending zero or more events) to some history $H'$ such that:
-  - $C o m p l e t e(H')$ is equivalent to some legal sequential history $S$.
-  - $arrow^(p r)_H subset.eq arrow^(p r)_S$.
-  In this case $S$ is called a _linearization_ of $H$.
+#definition[A *method call* is a tuple of $(i, r)$ where $i$ is an invocation event and $r$ is a response event or the special value $bot$ indicating that its response event hasn't happened yet. A well-formed *method call* should have a reponse event with a larger timestamp than its invocation event or the response event hasn't happened yet.]
+
+#definition[A *method call* is *pending* if its invocation event is $bot$.]
+
+#definition[A *history* is a set of well-formed *method calls*.]
+
+#definition[An extension of *history* $H$ is a *history* $H'$ such that any pending method call is given a response event.]
+
+We can define a *strict partial order* on the set of well-formed method calls:
+
+#definition[$->$ is a relation on the set of well-formed method calls. With two method calls $X$ and $Y$, we have $X -> Y <=>$ $X$'s response event is not $bot$ and its response timestamp is not greater than $Y$'s invocation timestamp.]
+
+#definition[Given a *history* H, $->$#sub($H$) is a relation on $H$ such that for two method calls $X$ and $Y$ in $H$, $X ->$#sub($H$)$Y <=> X -> Y$.]
+
+#definition[A *sequential history* $H$ is a *history* such that $->$#sub($H$) is a total order on $H$.]
+
+Now that we have formalized the way to describe the order of events via *histories*, we can now formalize the mechanism to determine if a *history* is valid. The easier case is for a *sequential history*.
+
+#definition[For a concurrent object $S$, a *sequential specification* of $S$ is a function that either returns `true` (valid) or `false` (invalid) for a *sequential history* $H$.]
+
+The harder case is handled via the notion of *linearizable*.
+
+#definition[A history $H$ on a concurrent object $S$ is *linearizable* if it has an extension $H'$ and there exists a _sequential history_ $H_S$ such that:
+  1. The *sequential specification* of $S$ accepts $H_S$.
+  2. There exists a one-to-one mapping $M$ of a method call $(i, r) in H'$ to a method call $(i_S, r_S) in H_S$ with the properties that:
+    - $i$ must be the same as $i_S$ except for the timestamp.
+    - $r$ must be the same $r_S$ except for the timestamp or $r$.
+  3. For any two method calls $X$ and $Y$ in $H'$, #linebreak() $X ->$#sub($H'$)$Y =>$ $M(X) ->$#sub($H_S$)$M(Y)$.
 ]
 
-=== Sequential specification of queues <sequential-specification>
+We consider a history to be valid if it is linearizable.
 
-This section gives two sequential specifications of queues, one for our simple SPSC queue and one for dLTQueue and Slotqueue. Even though our SPSC queue and MPSC queues are both FIFO queues so that a single sequential specification may seem suffice, the situation when an enqueue fails differ between the two cases. The difference will be clear in a moment.
+==== Linearizable SPSC
 
-==== Sequential specification of the SPSC queue
+Our SPSC supports 3 methods:
+- `enqueue` which accepts an input parameter and returns a boolean.
+- `dequeue` which accepts an output parameter and returns a boolean.
+- `readFront` which accepts an output parameter and returns a boolean.
 
-Let the abstract state $sigma$ have the form of $[v_0, v_1, dots]$, where $v_0$, $v_1$, $dots$ are the values currently in the queue. Let $l e n(sigma)$ represent the queue's length. Let $dot$ represent concatenation.
+#definition[An SPSC is *linearizable* if and only if any history produced from the SPSC that does not have overlapping dequeue method calls and overlapping enqueue method calls is _linearizable_ according to the following _sequential specification_:
+  - An enqueue can only be matched by one dequeue.
+  - A dequeue can only be matched by one enqueue.
+  - The order of item dequeues is the same as the order of item enqueues.
+  - An enqueue can only be matched by a later dequeue.
+  - A dequeue returns `false` when the queue is empty.
+  - A dequeue returns `true` and matches an enqueue when the queue is not empty.
+  - An enqueue returns `false` when the queue is full.
+  - An enqueue would return `true` when the queue is not full and the number of elements should increase by one.
+  - A read-front would return `false` when the queue is empty.
+  - A read-front would return `true` and the first element in the queue is read out.
+] <linearizable-spsc>
 
-We define the SPSC queue methods as abstract operations on the abstract state. Assume that $C a p a c i t y$ is a constant known in advance.
-- $E n q u e u e(e)$: If $l e n(sigma)=C a p a c i t y$ then $sigma' = sigma$ else $sigma = sigma' dot e$. Update $sigma$ to $sigma'$.
-- $D e q u e u e()$: If $sigma = []$ then return $N U L L$. Otherwise, $sigma = e dot sigma'$. Update $sigma$ to $sigma'$ and return $e$.
+==== Linearizable MPSC queue
 
-==== Sequential specification of dLTQueue and Slotqueue
+An MPSC queue supports 2 methods:
+- `enqueue` which accepts an input parameter and returns a boolean.
+- `dequeue` which accepts an output parameter and returns a boolean.
 
-Let the abstract state $sigma$ have the form of $[(v_0, t_0), (v_1, t_1), dots]$, where $v_0$, $v_1$, $dots$ are the values currently in the queue and $t_0$, $t_1$, $dots$ are process identifiers. Let $l e n_i (sigma)$ represent the queue's length after filtering out tuples with process identifier equal $i$. Let $dot$ represent concatenation.
-
-We define the queue methods as abstract operations on the abstract state. Assume that $C a p a c i t y$ is a constant known in advance.
-- $E n q u e u e_i (e)$: If $l e n_i (sigma)=C a p a c i t y$ then $sigma' = sigma$ else $sigma = sigma' dot e$. Update $sigma$ to $sigma'$.
-- $D e q u e u e()$: If $sigma = []$ then return $N U L L$. Otherwise, $sigma = e dot sigma'$. Update $sigma$ to $sigma'$ and return $e$.
-
-The most noticeable difference from the sequential specification of the SPSC queue is that $E n q u e u e$ and $l e n$ are now defined on a per-process basis. This is due to the fact that dLTQueue and Slotqueue keeps a bounded SPSC queue in each process.
-
-=== MPSC queue theorem
-
-In this section, we specify and prove a theorem for establishing dLTQueue and Slotqueue's correctness. Our theorem draws inspiration from @aspect-proof and @tss, in that we specify some properties that is sufficient for a linearizable history. However, @tss provided a theorem for stacks while @aspect-proof could only work with unbounded queues. Therefore, we provide a similar set of properties that work with bounded queues that maintain local buffers.
-
-We consider a history $H$. We append to $H$ a large enough number of dequeues so that any successfully-enqueued values should have been dequeued out. If we can prove that this extended history $H'$ is linearizable, then we can also prove that $H$ is linearizable.
-
-Denote:
-- $M$ as the set of operations in $H'$.
-- For $m in M$, $D e q(m)$ as the statement that $m$ is a dequeue and similarly for $E n q(m)$.
-- $E m p(d)$ as a statement that $d$ is a dequeue that returns $N U L L$.
-- $F a i l e d(e)$ as the statement that $e$ is a failed enqueue.
-- $t a r g e t(m)$ as the target SPSC queue that the method $m$ affects.
-- $c$ as the capacity of the local SPSC queues.
-
-In addition to the precedence partial order $->^(p r)$, there is also a relation $->^(v a l)$ on $M$ where $e ->^(v a l) d$ if $e$ is an enqueue, $d$ is a dequeue and $d$ dequeues $e$'s value.
-
-For simplicity, we assume every enqueue enqueues a unique value.
-
-Consider the following properties that the history $H'$ can possess. The $=>$ is taken to mean the $->$ connective, and $<=>$ is taken to mean the $<->$ connective in propositional logic so as not to confuse with $->^(p r)$ and $->^(v a l)$.
-+ Every successful enqueue is matched by a dequeue: $forall e in M. E n q (e) and not F a i l e d(e) <=> E n q(e) and  exists d in M. e ->^(v a l) d$.
-+ A failed enqueue cannot be matched: $forall e, d in M. F a i l e d(e) => e arrow.not^(v a l) d$.
-+ A dequeue can not dequeue a value out of nowhere: $forall d in M. D e q(d) and not E m p(d) <=> D e q(d) and exists e in M. e->^(v a l) d$.
-+ A dequeue can not dequeue a future value: $forall e,d in M.e->^(v a l) d => d arrow.not^(p r)e$.
-+ An enqueue can only be matched once by a dequeue: $forall e,d_1,d_2 in M.e ->^(v a l) d_1 and e ->^(v a l) d_2 =>d_1 = d_2$.
-+ A dequeue can only be matched once by an enqueue: $forall e_1,e_2,d in M.e_1 ->^(v a l) d and e_2 ->^(v a l) d =>e_1 = e_2$.
-+ Enqueued values are dequeued in order: $forall e_1, e_2, d_1, d_2 in M. e_1 ->^(p r) e_2 and e_2 ->^(v a l) d_2 and  e_1 ->^(v a l) d_1 => d_1 arrow^(p r) d_2$.
-+ A dequeue cannot return $N U L L$ when the queue is not empty: $forall d in M. D e q(d) and (exists e, d' in M. e ->^(p r) d and e ->^(v a l) d' and d ->^(p r) d') => not E m p(d)$.
-+ An enqueue cannot fail when the local SPSC queue is not full: $forall e in M$, if there are fewer than $c$ enqueues $e_i in M$ such that $not F a i l e d(e_i) and t a r g e t(e_i) = t a r g e t(e) and e_i ->^(p r) e and forall d_i. (e_i ->^(v a l) d_i => d_i arrow.not^(p r) e)$ then $not F a i l e d(e)$.
-+ An enqueue fails when the local SPSC queue is full: $forall e in M$, if there are at least $c$ enqueues $e_i in M$ such that $not F a i l e d(e_i) and t a r g e t(e_i) = t a r g e t(e) and e_i ->^(p r) e and forall d_i. (e_i ->^(v a l) d_i => e arrow^(p r) d_i)$ then $F a i l e d(e)$.
-
-We prove the following theorem.
-
-#theorem[
-  If all complete histories (after appending a large enough number of dequeues) produced by a wait-free MPSC queue satisfy the 10 properties above, the queue is linearizable.
-]
-
-#proof[
-  Consider any history $H$ produced by the wait-free MPSC queue. If we can prove that $H$ is linearizable, then the queue is linearizable. Because the queue is wait-free, we can assume that there is no pending method call in the history. We then append to $H$ a large enough number of dequeues so that there shall be no unmatched enqueues and obtain $H'$. If we can prove that $H'$ is linearizable, then $H$ is also linearizable. Due to the assumption in the theorem, $H'$ satisfy the 10 properties above.
-
-  We consider a relation $prec$ on $M$ constructed as follows.
-  + If $X ->^(p r) Y$ then $X prec Y$.
-  + If $e ->^(v a l) d$ then $e prec d$.
-  + If $e_1 ->^(v a l) d_1$ and $e_2 ->^(v a l) d_2$ and $d_1 ->^(p r) d_2$ then $e_1 prec e_2$.
-  + If $E m p(d)$ and $d ->^(p r) d'$ and $e->^(v a l) d'$ then $d prec e$.
-  + If $F a i l e d (e)$ and $e arrow.not^(p r) d$ and $d arrow.not^(p r)e$ then $e prec d$.
-
-  (\*) We will prove that the transitive closure of $prec$, $->^(a u x)$, is a strict partial order.
-
-  By definition, $->^(a u x)$ is transitive.
-
-  We prove that $->^(a u x)$ is irreflexive. Suppose the contrary, this must be caused by a cycle in $prec$. Suppose the shortest cycle is $m_0 prec dots prec m_k prec m_0$.
-
-  (\*\*) Consider $->^(t t)$ as a total order that extends from $->^(a u x)$. We will prove that $->^(t t)$ is a way to order the method calls in $M$ that is consistent with the sequential specification of dLTQueue/Slotqueue.
-]
+#definition[An MPSC queue is *linearizable* if and only if any history produced from the MPSC queue that does not have overlapping dequeue method calls is _linearizable_ according to the following _sequential specification_:
+  - An enqueue can only be matched by one dequeue.
+  - A dequeue can only be matched by one enqueue.
+  - The order of item dequeues is the same as the order of item enqueues.
+  - An enqueue can only be matched by a later dequeue.
+  - A dequeue returns `false` when the queue is empty.
+  - A dequeue returns `true` and matches an enqueue when the queue is not empty
+  - An enqueue that returns `true` will be matched if there are enough dequeues after that.
+  - An enqueue that returns `false` will never be matched.
+] <linearizable-mpsc>
 
 === ABA-safety <ABA-safety>
 
-== Theoretical proofs of the distributed SPSC <spsc-proof>
+Not every ABA problem is unsafe. We formalize in this section which ABA problem is safe and which is not.
 
-This section establishes the correctness and fault-tolerance of our simple distributed SPSC queue introduced in @distributed-spsc. Specifically, @spsc-correctness proves there is no ABA problem and unsafe memory reclamation in our SPSC queue and it is linearizable; @spsc-progress-guarantee proves that our SPSC queue is wait-free; @spsc-performance discusses the overhead involved in each SPSC queue's operation.
+#definition[A *modification instruction* on a variable `v` is an atomic instruction that may change the value of `v` e.g. a store or a CAS.]
 
-=== Correctness <spsc-correctness>
+#definition[A *successful modification instruction* on a variable `v` is an atomic instruction that changes the value of `v` e.g. a store or a successful CAS.]
 
-First, we prove that there is no ABA problem in our SPSC queue in @spsc-aba-problem. Second, we prove that there is no potential memory errors when executing our SPSC queue in @spsc-safe-memory. Finally and most importantly, we prove that our SPSC queue is linearizable in @spsc-linearizable.
+#definition[A *CAS-sequence* on a variable `v` is a sequence of instructions of a method $m$ such that:
+  - The first instruction is a load $v_0 =$ `load(`$v$`)`.
+  - The last instruction is a `CAS(&`$v$`,`$v_0$`,`$v_1$`)`.
+  - There's no modification instruction on `v` between the first and the last instruction.
+]
 
-==== ABA problem <spsc-aba-problem>
+#definition[A *successful CAS-sequence* on a variable `v` is a *CAS-sequence* on `v` that ends with a successful CAS.]
 
-There is no CAS instruction in our simple distributed SPSC, so there is no potential for ABA problem.
+#definition[Consider a method $m$ on a concurrent object $S$. $m$ is said to be *ABA-safe* if and only if for any history of method calls produced from $S$, we can reorder any successful CAS-sequences inside an invocation of $m$ in the following fashion:
+  - If a successful CAS-sequence is part of an invocation of $m$, after reordering, it must still be part of that invocation.
+  - If a successful CAS-sequence by an invocation of $m$ precedes another by that invocation, after reordering, this ordering is still respected.
+  - Any successful CAS-sequence by an invocation of $m$ after reordering must not overlap with a successful modification instruction on the same variable.
+  - After reordering, all method calls' response events on the concurrent object $S$ stay the same.
+]
 
-==== Memory reclamation <spsc-safe-memory>
+=== Theoretical performance
 
-There is no dynamic memory allocation and deallocation in our simple distributed SPSC, so it is memory-safe.
+We use a simple performance model, projecting the performance of a distributed algorithm by calculating or approximating how many remote operations and local operations are made in the usual case. An example of our model has been shown in the dequeue and enqueue time-complexity rows of @summary-of-distributed-mpscs.
 
-==== Linearizability <spsc-linearizable>
+== Theoretical proofs of the distributed SPSC
 
-=== Progress guarantee <spsc-progress-guarantee>
+In this section, we focus on the correctness and progress guarantee of the simple distributed SPSC established in @distributed-spsc.
+
+=== Correctness
+
+This section establishes the correctness of our distributed SPSC.
+
+==== ABA problem
+
+There's no CAS instruction in our simple distributed SPSC, so there's no potential for ABA problem.
+
+==== Memory reclamation
+
+There's no dynamic memory allocation and deallocation in our simple distributed SPSC, so it is memory-safe.
+
+==== Linearizability
+
+We prove that our simple distributed SPSC is linearizable.
+
+#theorem(
+  name: "Linearizability of the simple distributed SPSC",
+)[The distributed SPSC given in @distributed-spsc is linearizable.] <spsc-linearizability-theorem>
+
+#proof[
+  We claim that the following are the linearization points of our SPSC's methods:
+  - The linearization point of an `spsc_enqueue` call (@spsc-enqueue) that returns `false` is @line-spsc-enqueue-resync-first.
+  - The linearization point of an `spsc_enqueue` call (@spsc-enqueue) that returns `true` is @line-spsc-enqueue-increment-last.
+  - The linearization point of an `spsc_dequeue` call (@spsc-dequeue) that returns `false` is @line-spsc-dequeue-resync-last.
+  - The linearization point of an `spsc_dequeue` call (@spsc-dequeue) that returns `true` is @line-spsc-dequeue-swing-first.
+  - The linearization point of `spsc_readFront`#sub(`e`) call (@spsc-enqueue-readFront) that returns `false` is @line-spsc-e-readFront-empty-once or @line-spsc-e-readFront-resync-first if @line-spsc-e-readFront-empty-once is passed.
+  - The linearization point of `spsc_readFront`#sub(`e`) call (@spsc-enqueue-readFront) that returns `true` is @line-spsc-e-readFront-resync-first.
+  - The linearization point of `spsc_readFront`#sub(`d`) call (@spsc-dequeue-readFront) that returns `false` is @line-spsc-d-readFront-resync-last.
+  - The linearization point of `spsc_readFront`#sub(`d`) call (@spsc-dequeue-readFront) that returns `true` is right after @line-spsc-d-readFront-resync-last or right before @line-spsc-d-readFront-read if @line-spsc-d-readFront-resync-last is never executed.
+
+  We define a total ordering $<$ on the set of completed method calls based on these linearization points: If the linearization point of a method call $A$ is before the linearization point of a method call $B$, then $A < B$.
+
+  If the distributed SPSC is linearizable, $<$ would define a equivalent valid sequential execution order for our SPSC method calls.
+
+  A valid sequential execution of SPSC method calls would possess the following characteristics.
+
+  _An enqueue can only be matched by one dequeue_: Each time an `spsc_dequeue` is executed, it advances the `First` index. Because only one dequeue can happen at a time, it is guaranteed that each dequeue proceeds with one unique `First` index. Two dequeues can only dequeue out the same entry in the SPSC's array if their `First` indices are congurent modulo `Capacity`. However, by then, this entry must have been overwritten. Therefore, an enqueue can only be dequeued at most once.
+
+  _A dequeue can only be matched by one enqueue_: This is trivial, as based on how @spsc-dequeue is defined, a dequeue can only dequeue out at most one value.
+
+  _The order of item dequeues is the same as the order of item enqueues_: To put more precisely, if there are 2 `spsc_enqueue`s $e_1$, $e_2$ such that $e_1 < e_2$, then either $e_2$ is unmatched or $e_1$ matches $d_1$ and $e_2$ matches $d_2$ such that $d_1 < d_2$. If $e_2$ is unmatched, the statement holds. Suppose $e_2$ matches $d_2$. Because $e_1 < e_2$, based on how @spsc-enqueue is defined, $e_1$ corresponds to a value $i_1$ of `Last` and $e_2$ corresponds to a value $i_2$ of `Last` such that $i_1 < i_2$. Based on how @spsc-dequeue is defined, each time a dequeue happens successfully, `First` would be incremented. Therefore, for $e_2$ to be matched, $e_1$ must be matched first because `First` must surpass $i_1$ before getting to $i_2$. In other words, $e_1$ matches $d_1$ such that $d_1 < d_2$.
+
+  _An enqueue can only be matched by a later dequeue_: To put more precisely, if an `spsc_enqueue` $e$ matches an `spsc_dequeue` $d$, then $e < d$. If $e$ hasn't executed its linearization point at @line-spsc-enqueue-increment-last, there's no way $d$'s @line-spsc-dequeue-read can see $e$'s value. Therefore, $d$'s linearization point at @line-spsc-dequeue-swing-first must be after $e$'s linearization point at @line-spsc-enqueue-increment-last. Therefore, $e < d$.
+
+  _A dequeue would return `false` when the queue is empty_: To put more precisely, for an `spsc_dequeue` $d$, if by $d$'s linearization point, every successful `spsc_enqueue` $e'$ such that $e' < d$ has been matched by $d'$ such that $d' < d$, then $d$ would be unmatched and return `false`. By this assumption, any `spsc_enqueue` $e$ that has executed its linearization point at @line-spsc-enqueue-increment-last before $d$'s @line-spsc-dequeue-empty-once has been matched. Therefore, `First = Last` at @line-spsc-dequeue-empty-once, or `First >= Last_buf`, therefore, the if condition at @line-spsc-dequeue-empty-once - @line-spsc-dequeue-empty is entered. Also by the assumption, any `spsc_enqueue` $e$ that has executed its linearization point at @line-spsc-enqueue-increment-last before $d$'s @line-spsc-dequeue-empty-twice has been matched. Therefore, `First = Last` at @line-spsc-dequeue-empty-twice. Then, @line-spsc-dequeue-empty is executed and $d$ returns `false`.
+
+  _A dequeue would return `true` and match an enqueue when the queue is not empty_: To put more precisely, for an `spsc_dequeue` $d$, if there exists a successful `spsc_enqueue` $e'$ such that $e' < d$ and has not been matched by a dequeue $d'$ such that $d' < e'$, then $d$ would be match some $e$ and return `true`. By this assumption, some $e'$ must have executed its linearization point at @line-spsc-enqueue-increment-last but is still unmatched by the time $d$ starts. Then, `First < Last`, so $d$ must match some enqueue $e$ and returns `true`.
+
+  _An enqueue would return `false` when the queue is full_: To put more precisely, for an `spsc_enqueue` $e$, if by $e$'s linearization point, the number of unmatched successful `spsc_enqueue` $e' < e$ by the time $e$ starts equals `Capacity`, then $e$ returns `false`. By this assumption, any $d'$ that matches $e'$ must satisfy $e < d'$, or $d'$ must execute its synchronization point at @line-spsc-dequeue-swing-first after @line-spsc-enqueue-new-last and @line-spsc-enqueue-diff-cache-twice of $e$, then $e$'s @line-spsc-enqueue-full must have executed and return `false`.
+
+  _An enqueue would return `true` when the queue is not full and the number of elements should increase by one_: To put more precisely, for an `spsc_enqueue` $e$, if by $e$'s linearization point, the number of unmatched successful `spsc_enqueue` $e' < e$ by the time $e$ starts is fewer than `Capacity`, then $e$ returns `true`. By this assumption, `First < Last` at least until $e$'s linearization point and because @line-spsc-enqueue-increment-last must be executed, which means the number of elements should increase by one.
+
+  _A read-front would return `false` when the queue is empty_: To put more precisely, for a read-front $r$, if by $r$'s linearization point, every successful `spsc_enqueue` $e'$ such that $e' < r$ has been matched by $d'$ such that $d' < r$, then $r$ would return `false`. That means any unmatched successful `spsc_enqueue` $e$ must have executed its linearization point at @line-spsc-enqueue-increment-last after $r$'s, or `First = Last` before $r$'s linearization point
+  - For an enqueuer's read-front, if $r$ doesn't pass @line-spsc-e-readFront-diff-cache-once, the statement holds. If $r$ passes @line-spsc-e-readFront-diff-cache-once, by the assumption, $r$ would execute @line-spsc-e-readFront-empty-twice, because $r$ sees that `First = Last`.
+  - For a dequeuer's read-front, $r$ must enter @line-spsc-d-readFront-resync-last because `First_buf >= Last_buf`, which is due to from the dequeuer's point of view, `First_buf = First` and `Last_buf <= Last`. Similarly, $r$ must execute @line-spsc-d-readFront-empty and return `false`.
+
+  _A read-front would return `true` and the first element in the queue is read out_: To put more precisely, for a read-front $r$, if before $r$'s linearization point, there exists some unmatched successful `spsc_enqueue` $e'$ such that $e' < r$, then $r$ would read out the same value as the first $d$ such that $r < d$. By this assumption, any $d'$ that matches some of these successful `spsc_enqueue` $e'$ must execute its linearization point at @line-spsc-dequeue-swing-first after $r$'s linearization point. Therefore, `First < Last` until $r$'s linearization point.
+  - For an enqueuer's read-front, $r$ must not execute @line-spsc-e-readFront-empty-once and @line-spsc-e-readFront-empty-twice. Therefore, @line-spsc-e-readFront-read is executed, and `First_buf` at this point is the same as `First_buf` of the first $d$ such that $r < d$, because we have just read it at @line-spsc-e-readFront-resync-first, and any successful $d' > r$ must execute @line-spsc-dequeue-swing-first after @line-spsc-e-readFront-read, therefore, `First` has no chance to be incremented between @line-spsc-e-readFront-resync-first and @line-spsc-e-readFront-read.
+  - For a dequeuer's read-front, $r$ must not execute @line-spsc-d-readFront-resync-last - @line-spsc-d-readFront-empty and execute @line-spsc-d-readFront-read instead. It's trivial that $r$ reads out the same value as the first dequeue $d$ such that $r < d$ because there can only be one dequeuer.
+
+  In conclusion, for any completed history of method calls our SPSC can produce, we have defined a way to sequentially order them in a way that conforms to SPSC's sequential specification. By @linearizable-spsc, our SPSC is linearizable.
+]
+
+=== Progress guarantee
 
 Our simple distributed SPSC is wait-free:
 - `spsc_dequeue` (@spsc-dequeue) does not execute any loops or wait for any other method calls.
@@ -161,7 +215,7 @@ Our simple distributed SPSC is wait-free:
 - `spsc_readFront`#sub(`e`) (@spsc-enqueue-readFront) does not execute any loops or wait for any other method calls.
 - `spsc_readFront`#sub(`d`) (@spsc-dequeue-readFront) does not execute any loops or wait for any other method calls.
 
-=== Theoretical performance <spsc-performance>
+=== Theoretical performance
 
 A summary of the theoretical performance of our simple SPSC is provided in @theo-perf-spsc. In the following discussion, $R$ means remote operations and $L$ means local operations.
 
@@ -192,7 +246,9 @@ For `spsc_readFront`#sub(`e`), we consider the procedure @spsc-enqueue-readFront
 For `spsc_readFront`#sub(`d`), we consider the procedure @spsc-dequeue-readFront. Only the operation on @line-spsc-d-readFront-read is executed always, which results in a truly remote operation as the Data array is hosted on the enqueuer. Therefore, it only takes one remote operation.
 
 
-== Theoretical proofs of dLTQueue <dltqueue-proof>
+== Theoretical proofs of dLTQueue
+
+In this section, we provide proofs covering all of our interested theoretical aspects in dLTQueue.
 
 === Proof-specific notations
 
@@ -211,7 +267,7 @@ As a reminder, the bottom rectangular nodes are called the *enqueuer nodes* and 
   ],
 )
 
-We will refer `propagate`#sub(`e`) and `propagate`#sub(`d`) as `propagate` if there is no need for discrimination. Similarly, we will sometimes refer to `refreshNode`#sub(`e`) and `refreshNode`#sub(`d`) as `refreshNode`, `refreshLeaf`#sub(`e`) and `refreshLeaf`#sub(`d`) as `refreshLeaf`, `refreshTimestamp`#sub(`e`) and `refreshTimestamp`#sub(`d`) as `refreshTimestamp`.
+We will refer `propagate`#sub(`e`) and `propagate`#sub(`d`) as `propagate` if there's no need for discrimination. Similarly, we will sometimes refer to `refreshNode`#sub(`e`) and `refreshNode`#sub(`d`) as `refreshNode`, `refreshLeaf`#sub(`e`) and `refreshLeaf`#sub(`d`) as `refreshLeaf`, `refreshTimestamp`#sub(`e`) and `refreshTimestamp`#sub(`d`) as `refreshTimestamp`.
 
 #definition[For a tree node $n$, the rank stored in $n$ at time $t$ is denoted as $r a n k(n, t)$.]
 
@@ -249,6 +305,8 @@ We will refer `propagate`#sub(`e`) and `propagate`#sub(`d`) as `propagate` if th
 
 === Correctness
 
+This section establishes the correctness of dLTQueue introduced in @dLTQueue.
+
 ==== ABA problem
 
 We use CAS instructions on:
@@ -259,13 +317,315 @@ We use CAS instructions on:
 - @line-ltqueue-d-refresh-node-cas of `refreshNode`#sub(`d`) (@ltqueue-dequeue-refresh-node).
 - @line-ltqueue-d-refresh-leaf-cas of `refreshLeaf`#sub(`d`) (@ltqueue-dequeue-refresh-leaf).
 
-Notice that at these locations, we increase the associated version tags of the CAS-ed values. These version tags are 32-bit in size, therefore, practically, ABA problem can't virtually occur. It is safe to assume that there is no ABA problem in dLTQueue.
+Notice that at these locations, we increase the associated version tags of the CAS-ed values. These version tags are 32-bit in size, therefore, practically, ABA problem can't virtually occur. It's safe to assume that there's no ABA problem in dLTQueue.
 
 ==== Memory reclamation
 
 Notice that dLTQueue pushes the memory reclamation problem to the underlying SPSC. If the underlying SPSC is memory-safe, dLTQueue is also memory-safe.
 
 ==== Linearizability
+
+#theorem[In dLTQueue, an enqueue can only match at most one dequeue.] <ltqueue-unique-match-enqueue>
+
+#proof[A dequeue indirectly performs a value dequeue through `spsc_dequeue`. Because `spsc_dequeue` can only match one `spsc_enqueue` by another enqueue, the theorem holds.]
+
+#theorem[In dLTQueue, a dequeue can only match at most one enqueue.] <ltqueue-unique-match-dequeue>
+
+#proof[This is trivial as a dequeue can only read out at most one value, so it can only match at most one enqueue.]
+
+#theorem[Only the dequeuer and one enqueuer can operate on an enqueuer node.]
+
+#proof[This is trivial based on how the algorithm is defined.]
+
+We immediately obtain the following result.
+
+#corollary[Only one dequeue operation and one enqueue operation can operate concurrently on an enqueuer node.] <ltqueue-one-dequeue-one-enqueue-corollary>
+
+#theorem[The SPSC at an enqueuer node contains items with increasing timestamps.] <ltqueue-increasing-timestamp-theorem>
+
+#proof[
+  Each enqueue would `FAA` the distributed counter (@line-ltqueue-enqueue-obtain-timestamp in @ltqueue-enqueue) and enqueue into the SPSC an item with the timestamp obtained from that counter. Applying @ltqueue-one-dequeue-one-enqueue-corollary, we know that items are enqueued one at a time into the SPSC. Therefore, later items are enqueued by later enqueues, which obtain increasing values by `FAA`-ing the shared counter. The theorem holds.
+]
+
+#theorem[For an enqueue or a dequeue $op$, if $op$ modifies an enqueuer node and this enqueuer node is attached to a leaf node $l$, then $p a t h(op)$ is the set of nodes lying on the path from $l$ to the root node.]
+
+#proof[This is trivial considering how `propagate`#sub(`e`) (@ltqueue-enqueue-propagate) and `propagate`#sub(`d`) (@ltqueue-dequeue-propagate) work.]
+
+#theorem[For any time $t$ and a node $n$, $r a n k(n, t)$ can only be `DUMMY_RANK` or the rank of an enqueuer that is attached to the subtree rooted at $n$.] <ltqueue-possible-ranks-theorem>
+
+#proof[This is trivial considering how `refreshNode`#sub(`e`), `refreshNode`#sub(`d`) and `refreshLeaf`#sub(`e`), `refreshLeaf`#sub(`d`) works.]
+
+#theorem[If an enqueue or a dequeue $op$ begins its *timestamp-refresh phase* at $t_0$ and finishes at time $t_1$, there's always at least one successful call to `refreshTimestamp`#sub(`e`) (@ltqueue-enqueue-refresh-timestamp) or `refreshTimestamp`#sub(`d`) (@ltqueue-dequeue-refresh-timestamp) that affects the enqueuer node corresponding to $r a n k(op)$ and this successful call starts and ends its *CAS-sequence* between $t_0$ and $t_1$.] <ltqueue-refresh-timestamp-theorem>
+
+#proof[
+  Suppose the interested *timestamp-refresh phase* affects the enqueuer node $n$.
+
+  Notice that the *timestamp-refresh phase* of both enqueue and dequeue consists of at most 2 `refreshTimestamp` calls affecting $n$.
+
+  If one of the two `refreshTimestamp`s of the *timestamp-refresh phase* succeeds, then the theorem obviously holds.
+
+  Consider the case where both fail.
+
+  The first `refreshTimestamp` fails because there's another `refreshTimestamp` on $n$ ending its *CAS-sequence* successfully after $t_0$ but before the end of the first `refreshTimestamp`'s *CAS-sequence*.
+
+  The second `refreshTimestamp` fails because there's another `refreshTimestamp` on $n$ ending its *CAS-sequence* successfully after $t_0$ but before the end of the second `refreshTimestamp`'s *CAS-sequence*. This another `refreshTimestamp` must start its *CAS-sequence* after the end of the first successful `refreshTimestamp`, otherwise, it would overlap with the *CAS-sequence* of the first successful `refreshTimestamp`, but successful *CAS-sequences* on the same enqueuer node cannot overlap as ABA problem does not occur. In other words, this another `refreshTimestamp` starts and successfully ends its *CAS-sequence* between $t_0$ and $t_1$.
+
+  We have proved the theorem.
+]
+
+#theorem[If an enqueue or a dequeue begins its *node-$n$-refresh phase* at $t_0$ and finishes at $t_1$, there's always at least one successful `refreshNode` or `refreshLeaf` calls affecting $n$ and this successful call starts and ends its *CAS-sequence* between $t_0$ and $t_1$.] <ltqueue-refresh-node-theorem>
+
+#proof[This is similar to the above proof.]
+
+#theorem[Consider a node $n$. If within $t_0$ and $t_1$, any dequeue $d$ where $n in p a t h(d)$ has finished its *node-$n$-refresh phase*, then $m i n \- t s(r a n k(n, t_x), t_y)$ is monotonically decreasing for $t_x, t_y in [t_0, t_1]$ .] <ltqueue-monotonic-theorem>
+
+#proof[
+  We have the assumption that within $t_0$ and $t_1$, all dequeue where $n in p a t h(d)$ has finished its *node-$n$-refresh phase*. Notice that if $n$ satisfies this assumption, any child of $n$ also satisfies this assumption.
+
+  We will prove a stronger version of this theorem: Given a node $n$, time $t_0$ and $t_1$ such that within $[t_0, t_1]$, any dequeue $d$ where $n in p a t h(d)$ has finished its *node-$n$-refresh phase*. Consider the last dequeue's *node-$n$-refresh phase* before $t_0$ (there maybe none). Take $t_s (n)$ and $t_e (n)$ to be the starting and ending time of the CAS-sequence of the last successful *$n$-refresh call* during this phase, or if there is none, $t_s (n) = t_e (n) = 0$. Then, $m i n \- t s(r a n k(n, t_x), t_y)$ is monotonically decreasing for $t_x, t_y in [t_e (n), t_1]$.
+
+  Consider any enqueuer node of rank $r$ that is attached to a satisfied leaf node. For any $n'$ that is a descendant of $n$, during $t_s (n')$ and $t_1$, there's no call to `spsc_dequeue`. Because:
+  - If an `spsc_dequeue` starts between $t_0$ and $t_1$, the dequeue that calls it hasn't finished its *node-$n'$-refresh phase*.
+  - If an `spsc_dequeue` starts between $t_s (n')$ and $t_0$, then a dequeue's *node-$n'$-refresh phase* must start after $t_s (n')$ and before $t_0$, but this violates our assumption of $t_s (n')$.
+  Therefore, there can only be calls to `spsc_enqueue` during $t_s (n')$ and $t_1$. Thus, $m i n \- s p s c \- t s(r, t_x)$ can only decrease from `MAX_TIMESTAMP` to some timestamp and remain constant for $t_x in [t_s (n'), t_1]$. $(1)$
+
+  Similarly, there can be no dequeue that hasn't finished its *timestamp-refresh phase* during $t_s (n')$ and $t_1$. Therefore, $m i n \- t s (r, t_x)$ can only decrease from `MAX_TIMESTAMP` to some timestamp and remain constant for $t_x in [t_s (n'), t_1]$. $(2)$
+
+  Consider any satisfied leaf node $n_0$. There can't be any dequeue that hasn't finished its *node-$n_0$-refresh phase* during $t_e (n_0)$ and $t_1$. Therefore, any successful `refreshLeaf` affecting $n_0$ during $[t_e (n_0), t_1]$ must be called by an enqueue. Because there's no `spsc_dequeue`, this `refreshLeaf` can only set $r a n k(n_0, t_x)$ from `DUMMY_RANK` to $r$ and this remains $r$ until $t_1$, which is the rank of the enqueuer whose node it is attached to. Therefore, combining with $(1)$, $m i n \- t s(r a n k(n_0, t_x), t_y)$ is monotonically decreasing for $t_x, t_y in [t_e (n_0), t_1]$. $(3)$
+
+  Consider any satisfied non-leaf node $n'$ that is a descendant of $n$. Suppose during $[t_e (n'), t_1]$, we have a sequence of successful *$n'$-refresh calls* that start their CAS-sequences at $t_(s t a r t \- 0) lt t_(s t a r t \- 1) lt t_(s t a r t \- 2) lt ... lt t_(s t a r t \- k)$ and end them at $t_(e n d \- 0) lt t_(e n d \- 1) lt t_(e n d\- 2) lt ... lt t_(e n d \- k)$. By definition, $t_(e n d \- 0) = t_e (n')$ and $t_(s t a r t \- 0) = t_s (n')$. We can prove that $t_(e n d \- i) < t_(s t a r t \- (i+1))$ because successful CAS-sequences cannot overlap.
+
+  Due to how `refreshNode` (@ltqueue-enqueue-refresh-node and @ltqueue-dequeue-refresh-node) is defined, for any $k gt.eq i gt.eq 1$:
+  - Suppose $t_(r a n k\-i)(c)$ is the time `refreshNode` reads the rank stored in the child node $c$, so $t_(s t a r t \- i) lt.eq t_(r a n k\-i)(c) lt.eq t_(e n d \- i)$.
+  - Suppose $t_(t s\-i)(c)$ is the time `refreshNode` reads the timestamp stored in the enqueuer with the rank read previously, so $t_(s t a r t \- i) lt.eq t_(t s\-i)(c) lt.eq t_(e n d \- i)$.
+  - There exists a child $c_i$ such that $r a n k(n', t_(e n d \- i)) = r a n k(c_i, t_(r a n k\-i)(c_i))$. $(4)$
+  - For every child $c$ of $n'$, #linebreak() $m i n \- t s(r a n k(n', t_(e n d \- i)), t_(t s\-i)(c_i))$ #linebreak() $lt.eq m i n \- t s (r a n k(c, t_(r a n k\-i)(c)), t_(t s\-i)(c))$. $(5)$
+
+  Suppose the stronger theorem already holds for every child $c$ of $n'$. $(6)$
+
+  For any $i gt.eq 1$, we have $t_e (c) lt.eq t_s (n') lt.eq t_(s t a r t \-(i-1)) lt.eq t_(r a n k\-(i-1))(c) lt.eq t_(e n d \-(i-1)) lt.eq t_(s t a r t \-i) lt.eq t_(r a n k \- i)(c) lt.eq t_1$. Combining with $(5)$, $(6)$, we have for any $k gt.eq i gt.eq 1$, #linebreak() $m i n \- t s(r a n k(n', t_(e n d \- i)), t_(t s\-i)(c_i))$ #linebreak() $lt.eq m i n \- t s (r a n k(c, t_(r a n k\-i)(c)), t_(t s\-i)(c))$ #linebreak() $lt.eq m i n \- t s (r a n k(c, t_(r a n k\-(i-1))(c)), t_(t s\-i)(c))$.
+
+  Choose $c = c_(i-1)$ as in $(4)$. We have for any $k gt.eq i gt.eq 1$, #linebreak() $m i n \- t s(r a n k(n', t_(e n d \- i)), t_(t s\-i)(c_i))$ #linebreak() $lt.eq m i n \- t s (r a n k(c_(i-1), t_(r a n k\-(i-1))(c_(i-1))),$$t_(t s\-i)(c_(i-1)))$ #linebreak() $= m i n\- t s(r a n k(n', t_(e n d \- (i-1))), t_(t s \-i)(c_(i-1))$.
+
+  Because $t_(t s \-i)(c_i) lt.eq t_(e n d \- i)$ and $t_(t s \-i)(c_(i-1)) gt.eq t_(e n d \- (i-1))$ and $(2)$, we have for any $k gt.eq i gt.eq 1$, #linebreak() $m i n \- t s(r a n k(n', t_(e n d \- i)), t_(e n d\-i))$ #linebreak() $lt.eq m i n \- t s (r a n k(n', t_(e n d \- (i-1))), t_(e n d \- (i-1)))$. $(*)$
+
+  $r a n k(n', t_x)$ can only change after each successful `refreshNode`, therefore, the sequence of its value is $r a n k(n', t_(e n d \- 0))$, $r a n k(n', t_(e n d \- 1))$, ..., $r a n k(n', t_(e n d \- k))$. $(**)$
+
+  Note that if `refreshNode` observes that an enqueuer has a `Min_timestamp` of `MAX_TIMESTAMP`, it would never try to CAS $n'$'s rank to the rank of that enqueuer (@line-ltqueue-e-refresh-node-check-dummy of @ltqueue-enqueue-refresh-node and @line-ltqueue-d-refresh-node-check-dummy of @ltqueue-dequeue-refresh-node). So, if `refreshNode` actually sets the rank of $n'$ to some non-`DUMMY_RANK` value, the corresponding enqueuer must actually has a non-`MAX_TIMESTAMP` `Min-timestamp` _at some point_. Due to $(2)$, this is constant up until $t_1$. Therefore, $m i n \- t s(r a n k(n', t_(e n d \- i)), t))$ is constant for any $t gt.eq t_(e n d \- i)$ and $k gt.eq i gt.eq 1$. $m i n \- t s(r a n k(n', t_(e n d \- 0)), t))$ is constant for any $t gt.eq t_(e n d \- 0)$ if there's a `refreshNode` before $t_0$. If there's no `refreshNode` before $t_0$, it is constantly `MAX_TIMESTAMP`. So, $m i n \- t s(r a n k(n', t_(e n d \- i)), t))$ is constant for any $t gt.eq t_(e n d \- i)$ and $k gt.eq i gt.eq 0$. $(***)$
+
+  Combining $(*)$, $(**)$, $(***)$, we obtain the stronger version of the theorem.
+]
+
+#theorem[If an enqueue $e$ obtains a timestamp $c$, finishes at time $t_0$ and is still *unmatched* at time $t_1$, then for any subrange $T$ of $[t_0, t_1]$ that does not overlap with a dequeue, $m i n \- t s(r a n k(r o o t, t_r), t_s) lt.eq c$ for any $t_r, t_s in T$.] <ltqueue-unmatched-enqueue-theorem>
+
+#proof[
+  We will prove a stronger version of this theorem: Suppose an enqueue $e$ obtains a timestamp $c$, finishes at time $t_0$ and is still *unmatched* at time $t_1$. For every $n_i in p a t h(e)$, $n_0$ is the leaf node and $n_i$ is the parent of $n_(i-1)$, $i gt.eq 1$. If $e$ starts and finishes its *node-$n_i$-refresh phase* at $t_(s t a r t\-i)$ and $t_(e n d\-i)$ then for any subrange $T$ of $[t_(e n d\-i), t_1]$ that does not overlap with a dequeue $d$ where $n_i in p a t h(d)$ and $d$ hasn't finished its *node $n_i$ refresh phase*, $m i n \- t s(r a n k(n_i, t_r), t_s) lt.eq c$ for any $t_r, t_s in T$.
+
+  If $t_1 lt t_0$ then the theorem holds.
+
+  Take $r_e$ to be the rank of the enqueuer that performs $e$.
+
+  Suppose $e$ enqueues an item with the timestamp $c$ into the local SPSC at time $t_(e n q u e u e)$. Because it is still unmatched up until $t_1$, $c$ is always in the local SPSC during $t_(e n q u e u e)$ to $t_1$. Therefore, $m i n \- s p s c \- t s(r_e, t) lt.eq c$ for any $t in [t_(e n q u e u e), t_1]$. $(1)$
+
+  Suppose $e$ finishes its *timestamp refresh phase* at $t_(r\-t s)$. Because $t_(r\-t s) gt.eq t_(e n q u e u e)$, due to $(1)$, $m i n \- t s(r_e, t) lt.eq c$ for every $t in [t_(r\-t s),t_1]$. $(2)$
+
+  Consider the leaf node $n_0 in p a t h (e)$. Due to $(2)$, $r a n k(n_0, t)$ is always $r_e$ for any $t in [t_(e n d\-0), t_1]$. Also due to $(2)$, $m i n \- t s(r a n k(n_0, t_r), t_s) lt.eq c$ for any $t_r, t_s in [t_(e n d\-0), t_1]$.
+
+  Consider any non-leaf node $n_i in p a t h(e)$. We can extend any subrange $T$ to the left until we either:
+  - Reach a dequeue $d$ such that $n_i in p a t h (d)$ and $d$ has just finished its *node-$n_i$-refresh phase*.
+  - Reach $t_(e n d \- i)$.
+  Consider one such subrange $T_i$.
+
+  Notice that $T_i$ always starts right after a *node-$n_i$-refresh phase*. Due to @ltqueue-refresh-node-theorem, there's always at least one successful `refreshNode` in this *node-$n_i$-refresh phase*.
+
+  Suppose the stronger version of the theorem already holds for $n_(i-1)$. That is, if $e$ starts and finishes its *node-$n_(i-1)$-refresh phase* at $t_(s t a r t\-(i-1))$ and $t_(e n d\-(i-1))$ then for any subrange $T$ of $[t_(e n d\-(i-1)), t_1]$ that does not overlap with a dequeue $d$ where $n_i in p a t h(d)$ and $d$ hasn't finished its *node $n_(i-1)$ refresh phase*, $m i n \- t s(r a n k(n_i, t_r), t_s) lt.eq c$ for any $t_r, t_s in T$.
+
+  Extend $T_i$ to the left until we either:
+  - Reach a dequeue $d$ such that $n_i in p a t h (d)$ and $d$ has just finished its *node-$n_(i-1)$-refresh phase*.
+  - Reach $t_(e n d \- (i-1))$.
+  Take the resulting range to be $T_(i-1)$. Obviously, $T_i subset.eq T_(i-1)$.
+
+  $T_(i-1)$ satisifies both criteria:
+  - It's a subrange of $[t_(e n d\-(i-1)), t_1]$.
+  - It does not overlap with a dequeue $d$ where $n_i in p a t h(d)$ and $d$ hasn't finished its *node-$n_(i-1)$-refresh phase*.
+  Therefore, $m i n \- t s(r a n k(n_(i-1), t_r), t_s) lt.eq c$ for any $t_r, t_s in T_(i-1)$.
+
+  Consider the last successful `refreshNode` on $n_i$ ending not after $T_i$ starts. Take $t_s'$ and $t_e'$ to be the start and end time of this `refreshNode`'s CAS-sequence. Because right at the start of $T_i$, a *node-$n_i$-refresh phase* just ends, this `refreshNode` must be within this *node-$n_i$-refresh phase*. $(4)$
+
+  This `refreshNode`'s CAS-sequence must be within $T_(i-1)$. This is because right at the start of $T_(i-1)$, a *node-$n_(i-1)$-refresh phase* just ends and $T_(i-1) supset.eq T_i$, $T_(i-1)$ must cover the *node-$n_i$-refresh phase* whose end $T_i$ starts from. Combining with $(4)$, $t_s' in T_(i-1)$ and $t_e' in T_i$. $(5)$
+
+  Due to how `refreshNode` is defined and the fact that $n_(i-1)$ is a child of $n_i$:
+  - $t_(r a n k)$ is the time `refreshNode` reads the rank stored in $n_(i-1)$, so that $t_s' lt.eq t_(r a n k) lt.eq t_e'$. Combining with $(5)$, $t_(r a n k) in T_(i-1)$.
+  - $t_(t s)$ is the time `refreshNode` reads the timestamp from that rank $t_s' lt.eq t_(t s) lt.eq t_e'$. Combining with $(5)$, $t_(t s) in T_(i-1)$.
+  - There exists a time $t'$, $t_s' lt.eq t' lt.eq t_e'$, #linebreak() $m i n \- t s(r a n k(n_i, t_e'), t') lt.eq m i n \- t s (r a n k(n_(i-1), t_(r a n k)), t_(t s))$. $(6)$
+
+  From $(6)$ and the fact that $t_(r a n k) in T_(i-1)$ and $t_(t s) in T_(i-1)$, $m i n \- t s(r a n k(n_i, t_e'), t') lt.eq c$.
+
+  There shall be no `spsc_dequeue` starting within $t_s'$ till the end of $T_i$ because:
+  - If there's an `spsc_dequeue` starting within $T_i$, then $T_i$'s assumption is violated.
+  - If there's an `spsc_dequeue` starting after $t_s'$ but before $T_i$, its dequeue must finish its *node-$n_i$-refresh phase* after $t_s'$ and before $T_i$. However, then $t_e'$ is no longer the end of the last successful `refreshNode` on $n_i$ not after $T_i$.
+  Because there's no `spsc_dequeue` starting in this timespan, $m i n \- t s(r a n k(n_i, t_e'), t_e') lt.eq m i n \- t s(r a n k(n_i, t_e'), t') lt.eq c$.
+
+  If there's no dequeue between $t_e'$ and the end of $T_i$ whose *node-$n_i$-refresh phase* hasn't finished, then by @ltqueue-monotonic-theorem, $m i n \- t s(r a n k(n_i, t_r), t_s)$ is monotonically decreasing for any $t_r$, $t_s$ starting from $t_e'$ till the end of $T_i$. Therefore, $m i n \- t s (r a n k(n_i, t_r), t_s) lt.eq c$ for any $t_r, t_s in T_i$.
+
+  Suppose there's a dequeue whose *node-$n_i$-refresh phase* is in progress some time between $t_e'$ and the end of $T_i$. By definition, this dequeue must finish it before $T_i$. Because $t_e'$ is the time of the last successful refresh on $n_i$ before $T_i$, $t_e'$ must be within the *node-$n_i$-refresh phase* of this dequeue and there should be no dequeue after that. By the way $t_e'$ is defined, technically, this dequeue has finished its *node-$n_i$-refresh phase* right at $t_e'$. Therefore, similarly, we can apply @ltqueue-monotonic-theorem, $m i n \- t s (r a n k(n_i, t_r), t_s) lt.eq c$ for any $t_r, t_s in T_i$.
+
+  By induction, we have proved the stronger version of the theorem. Therefore, the theorem directly follows.
+]
+
+#corollary[Suppose $r o o t$ is the root tree node. If an enqueue $e$ obtains a timestamp $c$, finishes at time $t_0$ and is still *unmatched* at time $t_1$, then for any subrange $T$ of $[t_0, t_1]$ that does not overlap with a dequeue, $m i n \- s p s c \- t s(r a n k(r o o t, t_r), t_s) lt.eq c$ for any $t_r, t_s in T$.] <ltqueue-unmatched-enqueue-corollary>
+
+#proof[
+  Call $t_(s t a r t)$ and $t_(e n d)$ to be the start and end time of $T$.
+
+  Applying @ltqueue-unmatched-enqueue-theorem, we have that $m i n \- t s(r a n k(r o o t, t_r), t_s) lt.eq c$ for any $t_r, t_s in T$.
+
+  Fix $t_r$ so that $r a n k(r o o t, t_r) = r$. We have that $m i n \- t s(r, t) lt.eq c$ for any $t in T$.
+
+  $m i n \- t s(r, t)$ can only change due to a successful `refreshTimestamp` on the enqueuer node with rank $r$. Consider the last successful `refreshTimestamp` on the enqueuer node with rank $r$ not after $T$. Suppose that `refreshTimestamp` reads out the minimum timestamp of the local SPSC at $t' lt.eq t_(s t a r t)$.
+
+  Therefore, $m i n \- t s(r, t_(s t a r t)) = m i n \- s p s c \- t s(r, t') lt.eq c$.
+
+  We will prove that after $t'$ until $t_(e n d)$, there's no `spsc_dequeue` on $r$ running.
+
+  Suppose the contrary, then this `spsc_dequeue` must be part of a dequeue. By definition, this dequeue must start and end before $t_(s t a r t)$, else it violates the assumption of $T$. If this `spsc_dequeue` starts after $t'$, then its `refreshTimestamp` must finish after $t'$ and before $t_(s t a r t)$. But this violates the assumption that the last `refreshTimestamp` not after $t_(s t a r t)$ reads out the minimum timestamp at $t'$.
+
+  Therefore, there's no `spsc_dequeue` on $r$ running during $[t', t_(e n d)]$. Therefore, $m i n \- s p s c \- t s(r, t)$ remains constant during $[t', t_(e n d)]$ because it is not `MAX_TIMESTAMP`.
+
+  In conclusion, $m i n \- s p s c \- t s(r, t) lt.eq c$ for $t in[t', t_(e n d)]$.
+
+  We have proved the theorem.
+]
+
+#theorem[Given a rank $r$. If within $[t_0, t_1]$, there's no uncompleted enqueues on rank $r$ and all matching dequeues for any completed enqueues on rank $r$ has finished, then $r a n k(n, t) eq.not r$ for every node $n$ and $t in [t_0, t_1]$.] <ltqueue-matched-enqueue-theorem>
+
+#proof[
+  If $n$ doesn't lie on the path from root to the leaf node that is attached to the enqueuer node with rank $r$, the theorem obviously holds.
+
+  Due to @ltqueue-one-dequeue-one-enqueue-corollary, there can only be one enqueue and one dequeue at a time at an enqueuer node with rank $r$. Therefore, there is a sequential ordering among the enqueues and a sequential ordering within the dequeues. Therefore, it is sensible to talk about the last enqueue before $t_0$ and the last matched dequeue $d$ before $t_0$.
+
+  Since all of these dequeues and enqueues work on the same local SPSC and the SPSC is linearizable, $d$ must match the last enqueue. After this dequeue $d$, the local SPSC is empty.
+
+  When $d$ finishes its *timestamp-refresh phase* at $t_(t s) lt.eq t_0$, due to @ltqueue-refresh-timestamp-theorem, there's at least one successful `refreshTimestamp` call in this phase. Because the last enqueue has been matched, $m i n \- t s(r, t) =$ `MAX_TIMESTAMP` for any $t in [t_(t s), t_1]$.
+
+  Similarly, for a leaf node $n_0$, suppose $d$ finishes its *node-$n_0$-refresh phase* at $t_(r\-0) gt.eq t_(t s)$, then $r a n k(n_0, t) =$ `DUMMY_RANK` for any $t in [t_(r\-0), t_1]$. $(1)$
+
+  For any non-leaf node $n_i in p a t h(d)$, when $d$ finishes its *node-$n_i$-refresh phase* at $t_(r\-i)$, there's at least one successful `refreshNode` call during this phase. Suppose this `refreshNode` call starts and ends at $t_(s t a r t \- i)$ and $t_(e n d\-i)$. Suppose $r a n k(n_(i-1), t) eq.not r$ for $t in [t_(r\-(i-1)), t_1]$. By the way `refreshNode` is defined after this `refreshNode` call, $n_i$ will store some rank other than $r$. Because of $(1)$, after this up until $t_1$, $r$ never has a chance to be visible to a `refreshNode` on node $n_i$ during $[n_(i-1), t]$. In other words, $r a n k(n_i, t) eq.not r$ for $t in [t_(r\-i), t_1]$.
+
+  By induction, we obtain the theorem.
+]
+
+#theorem[In dLTQueue, if an enqueue $e$ precedes another dequeue $d$, then either:
+  - $d$ is not matched.
+  - $d$ matches $e$.
+  - $e$ matches $d'$ and $d'$ precedes $d$.
+  - $d$ matches $e'$ and $e'$ precedes $e$.
+  - $d$ matches $e'$ and $e'$ overlaps with $e$.
+] <ltqueue-enqueue-dequeue-theorem>
+
+#proof[
+  If $d$ doesn't match anything, the theorem holds. If $d$ matches $e$, the theorem also holds. Suppose $d$ matches $e'$, $e' eq.not e$.
+
+  If $e$ matches $d'$ and $d'$ precedes $d$, the theorem also holds. Suppose $e$ matches $d'$ such that $d$ precedes $d'$ or is unmatched. $(1)$
+
+  Suppose $e$ obtains a timestamp of $c$ and $e'$ obtains a timestamp of $c'$.
+
+  Because $e$ precedes $d$ and because an MPSC queue does not allow multiple dequeues, from the start of $d$ at $t_0$ until after @line-ltqueue-dequeue-check-empty of dequeue (@ltqueue-dequeue) at $t_1$, $e$ has finished and there's no dequeue running that has _actually performed `spsc_dequeue`_. Also by $t_0$ and $t_1$, $e$ is still unmatched due to $(1)$.
+
+  Applying @ltqueue-unmatched-enqueue-corollary, $m i n \- s p s c \- t s(r a n k(r o o t, t_x), t_y) lt.eq c$ for $t_x, t_y in [t_0, t_1]$. Therefore, $d$ reads out a rank $r$ such that $m i n \- s p s c \- t s(r, t) lt.eq c$ for $t in [t_0, t_1]$. Consequently, $d$ dequeues out a value with a timestamp not greater than $c$. Because $d$ matches $e'$, $c' lt.eq c$. However, $e' eq.not e$ so $c' lt c$.
+
+  This means that $e$ cannot precede $e'$, because if so, $c lt c'$.
+
+  Therefore, $e'$ precedes $e$ or overlaps with $e$.
+]
+
+#theorem[
+  In dLTQueue, if $d$ matches $e$, then either $e$ precedes or overlaps with $d$.
+] <ltqueue-matching-dequeue-enqueue-theorem>
+
+#proof[
+  If $d$ precedes $e$, none of the local SPSCs can contain an item with the timestamp of $e$. Therefore, $d$ cannot return an item with a timestamp of $e$. Thus $d$ cannot match $e$.
+
+  Therefore, $e$ either precedes or overlaps with $d$.
+]
+
+#theorem[In dLTQueue, If a dequeue $d$ precedes another enqueue $e$, then either:
+  - $d$ is not matched.
+  - $d$ matches $e'$ such that $e'$ precedes or overlaps with $e$ and $e' eq.not e$.
+] <ltqueue-dequeue-enqueue-theorem>
+
+#proof[
+  If $d$ is not matched, the theorem holds.
+
+  Suppose $d$ matches $e'$. Applying @ltqueue-matching-dequeue-enqueue-theorem, $e'$ must precede or overlap with $d$. In other words, $d$ cannot precede $e'$.
+
+  If $e$ precedes or is $e'$, then $d$ must precede $e'$, which is contradictory.
+
+  Therefore, $e'$ must precede $e$ or overlap with $e$.
+]
+
+#theorem[In dLTQueue, if an enqueue $e_0$ precedes another enqueue $e_1$, then either:
+  - Both $e_0$ and $e_1$ aren't matched.
+  - $e_0$ is matched but $e_1$ is not matched.
+  - $e_0$ matches $d_0$ and $e_1$ matches $d_1$ such that $d_0$ precedes $d_1$.
+] <ltqueue-enqueue-enqueue-theorem>
+
+#proof[
+  If both $e_0$ and $e_1$ aren't matched, the theorem holds.
+
+  Suppose $e_1$ matches $d_1$. By @ltqueue-matching-dequeue-enqueue-theorem, either $e_1$ precedes or overlaps with $d_1$.
+
+  If $e_0$ precedes $d_1$, applying @ltqueue-enqueue-dequeue-theorem for $d_1$ and $e_0$:
+  - $d_1$ is not matched, contradictory.
+  - $d_1$ matches $e_0$, contradictory.
+  - $e_0$ matches $d_0$ and $d_0$ precedes $d_1$, the theorem holds.
+  - $d_1$ matches $e_1$ and $e_1$ precedes $e_0$, contradictory.
+  - $d_1$ matches $e_1$ and $e_1$ overlaps with $e_0$, contradictory.
+
+  If $d_1$ precedes $e_0$, applying @ltqueue-dequeue-enqueue-theorem for $d_1$ and $e_0$:
+  - $d_1$ is not matched, contradictory.
+  - $d_1$ matches $e_1$ and $e_1$ precedes or overlaps with $e_0$, contradictory.
+
+  Consider that $d_1$ overlaps with $e_0$, then $d_1$ must also overlap with $e_1$. Call $r_1$ the rank of the enqueuer that performs $e_1$. Call $t$ to be the time $d_1$ atomically reads the root's rank on @line-slotqueue-dequeue-read-rank of dequeue (@ltqueue-dequeue). Because $d_1$ matches $e_1$, $d_1$ must read out $r_1$ at $t_1$.
+
+  If $e_1$ is the first enqueue of rank $r_1$, then $t$ must be after $e_1$ has started, because otherwise, due to @ltqueue-matched-enqueue-theorem, $r_1$ would not be in $r o o t$ before $e_1$.
+
+  If $e_1$ is not the first enqueue of rank $r_1$, then $t$ must also be after $e_1$ has started. Suppose the contrary, $t$ is before $e_1$ has started:
+  - If there's no uncompleted enqueue of rank $r_1$ at $t$ and they are all matched by the time $t$, due to @ltqueue-matched-enqueue-theorem, $r_1$ would not be in $r o o t$ at $t$. Therefore, $d_1$ cannot read out $r_1$, which is contradictory.
+  - If there's some unmatched enqueue of rank $r_1$ at $t$, $d_1$ will match one of these enqueues instead because:
+    - There's only one dequeue at a time, so unmatched enqueues at $t$ remain unmatched until $d_1$ performs an `spsc_dequeue`.
+    - Due to @ltqueue-one-dequeue-one-enqueue-corollary, all the enqueues of rank $r_1$ must finish before another starts. Therefore, there's some unmatched enqueue of rank $r_1$ finishing before $e_1$.
+    - The local SPSC of the enqueuer node of rank $r_1$ is serializable, so $d_1$will favor one of these enqueues over $e_1$.
+
+  Therefore, $t$ must happen after $e_1$ has started. Right at $t$, no dequeue is actually modifying the dLTQueue state and $e_0$ has finished. If $e_0$ has been matched at $t$ then the theorem holds. If $e_0$ hasn't been matched at $t$, applying @ltqueue-unmatched-enqueue-theorem, $d_1$ will favor $e_0$ over $e_1$, which is a contradiction.
+
+  We have proved the theorem.
+]
+
+#theorem[In dLTQueue, if a dequeue $d_0$ precedes another dequeue $d_1$, then either:
+  - $d_0$ is not matched.
+  - $d_1$ is not matched.
+  - $d_0$ matches $e_0$ and $d_1$ matches $e_1$ such that $e_0$ precedes or overlaps with $e_1$.
+] <ltqueue-dequeue-dequeue-theorem>
+
+#proof[
+  If $d_0$ is not matched or $d_1$ is not matched, the theorem holds.
+
+  Suppose $d_0$ matches $e_0$ and $d_1$ matches $e_1$.
+
+  Suppose the contrary, $e_1$ precedes $e_0$. Applying @ltqueue-enqueue-dequeue-theorem:
+  - Both $e_0$ and $e_1$ aren't matched, which is contradictory.
+  - $e_1$ is matched but $e_0$ is not matched, which contradictory.
+  - $e_1$ matches $d_1$ and $e_0$ matches $d_0$ such that $d_1$ precedes $d_0$, which is contradictory.
+
+  Therefore, the theorem holds.
+]
+
+#theorem(
+  name: "Linearizability of dLTQueue",
+)[The dLTQueue algorithm is linearizable.]
+
+#proof[ ]
 
 === Progress guarantee
 
@@ -300,7 +660,9 @@ In total, each level requires 6 remote operations and 4 local operations. Theref
 
 For `dequeue`, it is similar to `enqueue` but the other way around, what makes for a remote operation in `enqueue` is a local operation in `dequeue` and otherwise. Therefore, `dequeue` requires about $4log_2(n)R + 6log_2(n)L$ operations.
 
-== Theoretical proofs of Slotqueue <slotqueue-proof>
+== Theoretical proofs of Slotqueue
+
+In this section, we provide proofs covering all of our interested theoretical aspects in Slotqueue.
 
 === Proof-specific notations
 
@@ -340,6 +702,8 @@ The followings are some other definitions that will be used throughout our proof
 #definition[For a dequeue, *slot-scan phase* refer to its execution of @line-slotqueue-read-min-rank-init-buffer - @line-slotqueue-read-min-rank-return of @slotqueue-read-minimum-rank.]
 
 === Correctness
+
+This section establishes the correctness of Slotqueue introduced in @slotqueue.
 
 ==== ABA problem
 
@@ -419,7 +783,7 @@ Both `CAS`es target some slot in the `Slots` array.
 
   Therefore, $t_d = t_e$.
 
-  If $t_d = t_e =$ `MAX_TIMESTAMP`, this means $e$ observes a value of `MAX_TIMESTAMP` before $d$ even sets `s` to `MAX_TIMESTAMP` due to $(*)$. If this `MAX_TIMESTAMP` value is the initialized value of `s`, it's a contradiction, as `s` must be non-`MAX_TIMESTAMP` at some point for a dequeue such as $d$ to enter its CAS sequence. If this `MAX_TIMESTAMP` value is set by an enqueue, it's also a contradiction, as `refreshEnqueue` cannot set a slot to `MAX_TIMESTAMP`. Therefore, this `MAX_TIMESTAMP` value is set by a dequeue $d'$. If $d' != d$ then it's a contradiction, because between $d'$ and $d$, `s` must be set to be a non-`MAX_TIMESTAMP` value before $d$ can be run, thus, $e$ cannot have observed a value set by $d'$. Therefore, $d' = d$. But, this means $e$ observes a value set by $d$, which violates our assumption $(*)$.
+  If $t_d = t_e =$ `MAX_TIMESTAMP`, this means $e$ observes a value of `MAX_TIMESTAMP` before $d$ even sets `s` to `MAX_TIMESTAMP` due to $(*)$. If this `MAX_TIMESTAMP` value is the initialized value of `s`, it is a contradiction, as `s` must be non-`MAX_TIMESTAMP` at some point for a dequeue such as $d$ to enter its CAS sequence. If this `MAX_TIMESTAMP` value is set by an enqueue, it is also a contradiction, as `refreshEnqueue` cannot set a slot to `MAX_TIMESTAMP`. Therefore, this `MAX_TIMESTAMP` value is set by a dequeue $d'$. If $d' != d$ then it is a contradiction, because between $d'$ and $d$, `s` must be set to be a non-`MAX_TIMESTAMP` value before $d$ can be run, thus, $e$ cannot have observed a value set by $d'$. Therefore, $d' = d$. But, this means $e$ observes a value set by $d$, which violates our assumption $(*)$.
 
   Therefore $t_d = t_e = t' !=$ `MAX_TIMESTAMP`. $e$ cannot observe the value $t'$ set by $d$ due to our assumption $(*)$. Suppose $e$ observes the value $t'$ from `s` set by another enqueue/dequeue call other than $d$.
 
@@ -460,6 +824,131 @@ Both `CAS`es target some slot in the `Slots` array.
 Notice that Slotqueue pushes the memory reclamation problem to the underlying SPSC. If the underlying SPSC is memory-safe, Slotqueue is also memory-safe.
 
 ==== Linearizability
+
+#theorem[In Slotqueue, an enqueue can only match at most one dequeue.] <slotqueue-unique-match-enqueue>
+
+#proof[A dequeue indirectly performs a value dequeue through `spsc_dequeue`. Because `spsc_dequeue` can only match one `spsc_enqueue` by another enqueue, the theorem holds.]
+
+#theorem[In Slotqueue, a dequeue can only match at most one enqueue.] <slotqueue-unique-match-dequeue>
+
+#proof[This is trivial as a dequeue can only read out at most one value, so it can only match at most one enqueue.]
+
+#theorem[If an enqueue $e$ begins its *slot-refresh phase* at time $t_0$ and finishes at time $t_1$, there's always at least one successful `refreshEnqueue` that either doesn't execute its *CAS sequence* or starts and ends its *CAS-sequence* between $t_0$ and $t_1$ or a successful `refreshDequeue` on $r a n k(e)$ starting and ending its *CAS-sequence* between $t_0$ and $t_1$.] <slotqueue-refresh-enqueue-theorem>
+
+#proof[
+  If one of the two `refreshEnqueue`s succeeds, then the theorem obviously holds.
+
+  Consider the case where both fail.
+
+  The first `refreshEnqueue` fails because it tries to execute its *CAS-sequence* but there's another `refreshDequeue` executing its *slot-modification instruction* successfully after $t_0$ but before the end of the first `refreshEnqueue`'s *CAS-sequence*.
+
+  The second `refreshEnqueue` fails because it tries to execute its *CAS-sequence* but there's another `refreshDequeue` executing its *slot-modification instruction* successfully after $t_0$ but before the end of the second `refreshEnqueue`'s *CAS-sequence*. This another `refreshDequeue` must start its *CAS-sequence* after the end of the first successful `refreshDequeue`, due to @slotqueue-one-enqueuer-one-dequeuer-theorem. In other words, this another `refreshDequeue` starts and successfully ends its *CAS-sequence* between $t_0$ and $t_1$.
+
+  We have proved the theorem.
+]
+
+#theorem[If a dequeue $d$ begins its *slot-refresh phase* at time $t_0$ and finishes at time $t_1$, there's always at least one successful `refreshEnqueue` or `refreshDequeue` on $r a n k(d)$ starting and ending its *CAS-sequence* between $t_0$ and $t_1$.] <slotqueue-refresh-dequeue-theorem>
+
+#proof[This is similar to the above theorem.]
+
+#theorem[
+  Given a rank $r$, if an enqueue $e$ on $r$ that obtains the timestamp $c$ completes at $t_0$ and is still unmatched by $t_1$, then $s l o t (r, t) lt.eq c$ for any $t in [t_0, t_1]$.
+] <slotqueue-unmatched-enqueue-theorem>
+
+#proof[
+  Take $t'$ to be the time $e$'s `spsc_enqueue` takes effect.
+
+  At some point after $t'$, $e$ must enter its *slot-refresh phase*. By @slotqueue-refresh-enqueue-theorem, there must be a successful refresh call after $t'$. If this refresh call executes a *CAS-sequence* at $t'' gt.eq t'$, $t'' in [t', t_0]$, this *CAS-sequence* must observe the effect of `spsc_enqueue`. Therefore, $s l o t (r, t'') lt.eq c$. If this refresh call doesn't execute a *CAS-sequence*, it must be a `refreshEnqueue` seeing that the front timestamp is different from the enqueued timestamp at $t''$, $t'' in [t', t_0]$. Because $e$ is unmatched up until $t_1$ and due to @slotqueue-spsc-timestamp-monotonicity-theorem, $s l o t (r, t'') lt.eq c$.
+
+  By the same reasoning as in @aba-safe-slotqueue-theorem, any successful slot-modification instructions happening after $t''$ must observe the effect of $e$'s `spsc_enqueue`. However, because $e$ is never matched between $t''$ and $t_1$, the timestamp $c$ is in the local SPSC the whole timespan $[t'', t_1]$. Therefore, any slot-modification instructions during $[t'', t_1]$ must set the slot's value to some value not greater than $c$.
+]
+
+#theorem[In Slotqueue, if an enqueue $e$ precedes another dequeue $d$, then either:
+  - $d$ is not matched.
+  - $d$ matches $e$.
+  - $e$ matches $d'$ and $d'$ precedes $d$.
+  - $d$ matches $e'$ and $e'$ precedes $e$.
+  - $d$ matches $e'$ and $e'$ overlaps with $e$.
+] <slotqueue-enqueue-dequeue-theorem>
+
+#proof[
+  If $d$ doesn't match anything, the theorem holds. If $d$ matches $e$, the theorem also holds. Suppose $d$ matches $e'$, $e' eq.not e$.
+
+  If $e$ matches $d'$ and $d'$ precedes $d$, the theorem also holds. Suppose $e$ matches $d'$ such that $d$ precedes $d'$ or is unmatched. $(1)$
+
+  Suppose $e$ obtains a timestamp of $c$ and $e'$ obtains a timestamp of $c'$.
+
+  Due to $(1)$, at the time $d$ starts, $e$ has finished but it is still unmatched. By the way @slotqueue-read-minimum-rank is defined and by @slotqueue-unmatched-enqueue-theorem, $d$ would find a slot that stores a timestamp that is not greater than the one $e$ enqueues. In other word, $c' lt.eq c$. But $c' != c$, then $c' < c$. Therefore, $e$ cannot precede $e'$, otherwise, $c < c'$.
+
+  So, either $e'$ precedes or overlaps with $e$. The theorem holds.
+]
+
+#theorem[
+  In Slotqueue, if $d$ matches $e$, then either $e$ precedes or overlaps with $d$.
+] <slotqueue-matching-dequeue-enqueue-theorem>
+
+#proof[
+  If $d$ precedes $e$, none of the local SPSCs can contain an item with the timestamp of $e$. Therefore, $d$ cannot return an item with a timestamp of $e$. Thus $d$ cannot match $e$.
+
+  Therefore, $e$ either precedes or overlaps with $d$.
+]
+
+#theorem[In Slotqueue, if a dequeue $d$ precedes another enqueue $e$, then either:
+  - $d$ is not matched.
+  - $d$ matches $e'$ such that $e'$ precedes or overlaps with $e$ and $e' eq.not e$.
+] <slotqueue-dequeue-enqueue-theorem>
+
+#proof[
+  If $d$ is not matched, the theorem holds.
+
+  Suppose $d$ matches $e'$. By @slotqueue-matching-dequeue-enqueue-theorem, either $e'$ precedes or overlaps with $d$. Therefore, $e' != e$. Furthermore, $e$ cannot precede $e'$, because then $d$ would precede $e'$.
+
+  We have proved the theorem.
+]
+
+#theorem[If an enqueue $e_0$ precedes another enqueue $e_1$, then either:
+  - Both $e_0$ and $e_1$ aren't matched.
+  - $e_0$ is matched but $e_1$ is not matched.
+  - $e_0$ matches $d_0$ and $e_1$ matches $d_1$ such that $d_0$ precedes $d_1$.
+] <slotqueue-enqueue-enqueue-theorem>
+
+#proof[
+  If $e_1$ is not matched, the theorem holds.
+
+  Suppose $e_1$ matches $d_1$.
+
+  Suppose the contrary, $e_0$ is unmatched or $e_0$ matches $d_0$ such that $d_1$ precedes $d_0$, then when $d_1$ starts, $e_0$ is still unmatched.
+
+  If $e_0$ and $e_1$ targets the same rank, it is obvious that $d_1$ must prioritize $e_0$ over $e_1$. Thus $d_1$ cannot match $e_1$.
+
+  If $e_0$ targets a later rank than $e_1$, $d_1$ cannot find $e_1$ in the first scan, because the scan is left-to-right, and if it finds $e_1$ it would later find $e_0$ that has a lower timestamp. Suppose $d_1$ finds $e_1$ in the second scan, that means $d_1$ finds $e' != e_1$ and $e'$'s timestamp is larger than $e_1$'s, which is larger than $e_0$'s. Due to the scan being left-to-right, $e'$ must target a later rank than $e_1$. If $e'$ also targets a later rank than $e_0$, then in the second scan, $d_1$ would have prioritized $e_0$ that has a lower timestamp. Suppose $e'$ targets an earlier rank than $e_0$ but later than $e_1$. Because $e_0$'s timestamp is larger than $e'$'s, it must precede or overlap with $e$. Similarly, $e_1$ must precede or overlap with $e$. Because $e'$ targets an earlier rank than $e_0$, $e_0$'s *slot-refresh phase* must finish after $e'$'s. That means $e_1$ must start after $e'$'s *slot-refresh phase*, because $e_0$ precedes $e_1$. But then, $e_1$ must obtain a timestamp larger than $e'$, which is a contradiction.
+
+  Suppose $e_0$ targets an earlier rank than $e_1$. If $d_1$ finds $e_1$ in the first scan, then in the second scan, $d_1$ would have prioritize $e_0$'s timestamp. Suppose $d_1$ finds $e_1$ in the second scan and during the first scan, it finds $e' != e_1$ and $e'$'s timestamp is larger than $e_1$'s, which is larger than $e_0$'s. Due to how the second scan is defined, $e'$ targets a later rank than $e_1$, which targets a later rank than $e_0$. Because during the second scan, $e_0$ is not chosen, its *slot-refresh phase* must finish after $e'$'s. Because $e_0$ precedes $e_1$, $e_1$ must start after $e'$'s *slot-refresh phase*, so it must obtain a larger timestamp than $e'$, which is a contradiction.
+
+  Therefore, by contradiction, $e_0$ must be matched and $e_0$ matches $d_0$ such that $d_0$ precedes $d_1$.
+]
+
+#theorem[In Slotqueue, if a dequeue $d_0$ precedes another dequeue $d_1$, then either:
+  - $d_0$ is not matched.
+  - $d_1$ is not matched.
+  - $d_0$ matches $e_0$ and $d_1$ matches $e_1$ such that $e_0$ precedes or overlaps with $e_1$.
+] <slotqueue-dequeue-dequeue-theorem>
+
+#proof[
+  If either $d_0$ is not matched or $d_1$ is not matched, the theorem holds.
+
+  Suppose $d_0$ matches $e_0$ and $d_1$ matches $e_1$.
+
+  If $e_1$ precedes $e_0$, applying @slotqueue-enqueue-enqueue-theorem, we have $e_1$ matches $d_1$ and $e_0$ matches $d_0$ such that $d_1$ precedes $d_0$. This is a contradiction.
+
+  Therefore, $e_0$ either precedes or overlaps with $e_1$.
+]
+
+#theorem(
+  name: "Linearizability of Slotqueue",
+)[Slotqueue is linearizable.] <slotqueue-spsc-linearizability-theorem>
+
+#proof[ ]
 
 === Progress guarantee
 
