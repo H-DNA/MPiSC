@@ -448,7 +448,7 @@ tss:
   url: "https://doi.org/10.1145/2775051.2676963"
   doi: "10.1145/2775051.2676963"
 
-aspect-proof:
+aspect-proof-paper:
   type: conference
   title: "Aspect-Oriented Linearizability Proofs"
   author:
