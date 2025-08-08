@@ -482,7 +482,7 @@ We immediately obtain the following result.
 #proof[
   Consider a complete history c and two enqueues $e_1$, $e_2$ such that $e_1$ precedes $e_2$.
   Because $e_1$ precedes $e_2$, its timestamp $c_1$ must be strictly smaller than $e_2$'s timestamp $c_2$. Suppose $e_1$ finishes at time $t_0$ and is still unmatched at time $t_1$. Then, by @ltqueue-unmatched-enqueue-theorem, for any subrange $T$ of $[t_0, t_1]$, for any $t_r, t_s in T$:
-  $ "min"_"spsc"_"ts"(r a n k(r o o t, t_r), t_s) <= c_1 < c_2 $ <eq1>
+  $ "min"\_"spsc"\_"ts"(r a n k(r o o t, t_r), t_s) <= c_1 < c_2 $ <eq1>
   Therefore, before $e_1$ is matched, there's no chance the root node can refer to $e_2$. It follows that $e_1$ must be matched before $e_2$. The theorem holds.
 ]
 
