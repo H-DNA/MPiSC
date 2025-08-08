@@ -21,7 +21,7 @@ This section discusses the correctness and progress guarantee properties of the 
 
 == Preliminaries <preliminaries>
 
-In this section, we will formalize some ideas so that we can reason about them. Specifically, we specifies the notion of correct concurrent algorithms in @linearizability. Verifying the correctness of concurrent queues involves us giving two sequential queue specifications in @sequential-specification. We then give an MPSC queue theorem for establish the linearizability of dLTQueue and Slotqueue. Finally, we formulate the definition of harmless ABA problem in @ABA-safety. We will base our proofs on these formalisms to prove the algorithms' correctness.
+In this section, we will formalize some ideas so that we can reason about them. Specifically, we specifies the notion of correct concurrent algorithms in @linearizability. Verifying the correctness of concurrent queues involves us giving two sequential queue specifications in @sequential-specification. We then give an MPSC queue theorem for establishing the linearizability of dLTQueue and Slotqueue. Finally, we formulate the definition of harmless ABA problem in @ABA-safety. We will base our proofs on these formalisms to prove the algorithms' correctness.
 
 Our system consists of a set of sequential processes that communicate through a collection of shared objects. Processes are asynchronous, so that each process may run at their own pace. Each object has a type, defining a set of possible values and operations that manipulate that object.
 
