@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
     unbounded_ltqueue_single_one_queue_microbenchmark(100000, 5);
     ltqueue_node_single_one_queue_microbenchmark(100000, 5);
     naive_ltqueue_single_one_queue_microbenchmark(100000, 5);
+    amqueue_single_one_queue_microbenchmark(1000000, 5);
   }
 
   if (run_isx) {
