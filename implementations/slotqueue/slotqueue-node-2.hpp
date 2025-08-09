@@ -126,6 +126,7 @@ private:
     } else {
       new_timestamp = front.timestamp;
     }
+    this->_min_timestamp_buf[rank] = new_timestamp;
     timestamp_t result;
     compare_and_swap_sync(&old_timestamp, &new_timestamp, &result, rank,
                           this->_self_rank, this->_min_timestamp_win);
