@@ -80,8 +80,10 @@ private:
     timestamp_t min_timestamp = MAX_TIMESTAMP;
 
     for (int i = 0; i < this->_size; ++i) {
-      aread_sync(&this->_min_timestamp_buf[i], i, this->_self_rank,
-                 this->_min_timestamp_win);
+      if (this->_min_timestamp_buf[i] == MAX_TIMESTAMP) {
+        aread_sync(&this->_min_timestamp_buf[i], i, this->_self_rank,
+                   this->_min_timestamp_win);
+      }
     }
     for (int i = 0; i < this->_size; ++i) {
       timestamp_t timestamp = this->_min_timestamp_buf[i];
@@ -94,8 +96,10 @@ private:
       return DUMMY_RANK;
     }
     for (int i = 0; i < rank; ++i) {
-      aread_sync(&this->_min_timestamp_buf[i], i, this->_self_rank,
-                 this->_min_timestamp_win);
+      if (this->_min_timestamp_buf[i] == MAX_TIMESTAMP) {
+        aread_sync(&this->_min_timestamp_buf[i], i, this->_self_rank,
+                   this->_min_timestamp_win);
+      }
     }
     for (int i = 0; i < rank; ++i) {
       timestamp_t timestamp = this->_min_timestamp_buf[i];
@@ -149,10 +153,11 @@ public:
                        &this->_min_timestamp_win);
       MPI_Win_lock_all(MPI_MODE_NOCHECK, this->_min_timestamp_win);
 
+      this->_min_timestamp_buf = new timestamp_t[this->_size];
       for (int i = 0; i < this->_size; ++i) {
         this->_min_timestamp_ptr[i] = MAX_TIMESTAMP;
+        this->_min_timestamp_buf[i] = MAX_TIMESTAMP;
       }
-      this->_min_timestamp_buf = new timestamp_t[this->_size];
     } else {
       MPI_Win_allocate(0, sizeof(timestamp_t), this->_info, comm,
                        &this->_min_timestamp_ptr, &this->_min_timestamp_win);
@@ -244,6 +249,7 @@ public:
     if (rank == DUMMY_RANK) {
       return false;
     }
+    this->_min_timestamp_buf[rank] = MAX_TIMESTAMP;
     data_t output_data;
     bool res = this->_spsc.dequeue(&output_data, rank);
     if (!res) {
