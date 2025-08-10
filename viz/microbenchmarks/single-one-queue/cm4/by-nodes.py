@@ -8,25 +8,25 @@ nodes = [2, 3, 4]
 
 queue_data = {
     "Slotqueue": {
-        "dequeue_throughput": [0.0174704, 0.0114833, 0.00932901],
-        "dequeue_latency": [572.395, 870.83, 1071.93],
-        "enqueue_throughput": [0.0575015, 0.0422524, 0.0344312],
-        "enqueue_latency": [38781.6, 79285.4, 129824],
-        "total_throughput": [0.035002, 0.023024, 0.0189202],
+        "dequeue_throughput": [0.386877, 0.305279, 0.29129],
+        "dequeue_latency": [25.848, 32.7569, 34.33],
+        "enqueue_throughput": [9.45739, 6.99411, 5.76632],
+        "enqueue_latency": [235.794, 478.974, 775.191],
+        "total_throughput": [0.775107, 0.612084, 0.590766],
     },
     "LTQueue": {
-        "dequeue_throughput": [0.0136667, 0.0118626, 0.0105236],
-        "dequeue_latency": [731.705, 842.988, 950.244],
-        "enqueue_throughput": [0.0331294, 0.0165126, 0.0108748],
-        "enqueue_latency": [67311.8, 202875, 411043],
-        "total_throughput": [0.0273813, 0.0237844, 0.0194079],
+        "dequeue_throughput": [0.613655, 0.555507, 0.511682],
+        "dequeue_latency": [16.2958, 18.0016, 19.5434],
+        "enqueue_throughput": [5.33484, 2.70814, 1.56644],
+        "enqueue_latency": [418.007, 1237.01, 2853.6],
+        "total_throughput": [1.22946, 1.11379, 1.03774],
     },
     "AMQueue": {
-        "dequeue_throughput": [0.0634113, 0.0507263, 0.039581],
-        "dequeue_latency": [157.701, 197.137, 252.647],
-        "enqueue_throughput": [0.0574075, 0.0415926, 0.0283861],
-        "enqueue_latency": [38845.1, 80543.3, 157471],
-        "total_throughput": [0.102263, 0.0731421, 0.0500319],
+        "dequeue_throughput": [3.16927, 2.98791, 2.51888],
+        "dequeue_latency": [3.1553, 3.34682, 3.97002],
+        "enqueue_throughput": [4.63649, 3.52094, 2.34645],
+        "enqueue_latency": [480.968, 951.45, 1905],
+        "total_throughput": [5.63325, 4.88797, 3.51556],
     },
 }
 
@@ -72,7 +72,7 @@ for metric in metrics:
 
     title, unit = metric_labels[metric]
     plt.title(f"Comparative {title} Across Queue Implementations", fontsize=16)
-    plt.xlabel("Number of Nodes (x112 cores)", fontsize=14)
+    plt.xlabel("Number of Nodes (x8 cores)", fontsize=14)
     plt.ylabel(f"{title} ({unit})", fontsize=14)
     plt.grid(True, alpha=0.3)
     plt.legend(title="Queue Types", loc="best", fontsize=12)
@@ -84,6 +84,4 @@ for metric in metrics:
     plt.savefig(filename, dpi=300)
     plt.close()
 
-print(
-    "All comparative plots have been generated in the 'cm4/all/by-nodes' folder."
-)
+print("All comparative plots have been generated in the 'cm4/all/by-nodes' folder.")
