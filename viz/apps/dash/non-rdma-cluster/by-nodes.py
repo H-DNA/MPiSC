@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Create directory if it doesn't exist
-os.makedirs("./by-nodes", exist_ok=True)
+os.makedirs("./non-rdma-cluster/by-nodes", exist_ok=True)
 
 # Data from the measurements
 nodes = [2, 4, 8, 16]
@@ -68,6 +68,6 @@ for pattern in patterns:
     ax.set_xticks(nodes, [str(int(node)) for node in nodes], fontsize=12)
 
     # Save the plot
-    filename = f"./by-nodes/{pattern}.png"
+    filename = f"./non-rdma-cluster/by-nodes/{pattern}.png"
     plt.savefig(filename, dpi=300, bbox_inches="tight")
     print(f"Saved {filename}")
