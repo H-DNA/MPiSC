@@ -72,7 +72,7 @@ for metric in metrics:
 
     title, unit = metric_labels[metric]
     plt.title(f"Comparative {title} Across Queue Implementations", fontsize=16)
-    plt.xlabel("Number of Nodes (x8 cores)", fontsize=14)
+    plt.xlabel("Number of Nodes (x112 cores)", fontsize=14)
     plt.ylabel(f"{title} ({unit})", fontsize=14)
     plt.grid(True, alpha=0.3)
     plt.legend(title="Queue Types", loc="best", fontsize=12)
