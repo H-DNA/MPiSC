@@ -233,9 +233,13 @@ We assume all enqueues succeed in this section. Note that a failed enqueue only 
 #proof[
   Because the underlying SPSC queue is linearizable, take $t' < t_0$ to be the time $e$'s `spsc_enqueue` completes successfully. Because $e$ is still unmatched until $t_1$, the timestamp $c$ must be in the underlying SPSC at any time $t in [t', t_1]$. Therefore, due to @lemm:monotonic-SPSC, any `spsc_readFront` on rank $r$'s SPSC queue during $[t', t_1]$ must read out a value not greater than $c$. Consequently, any successful refresh call (`refresh_enqueue` or `refresh_dequeue`) during $[t', t_1]$ must set the slot to some value not greater than $c$. $(1)$
 
-  At some time after $t'$ and before $t_0$, $e$ must enter its slot-refresh phase. Due to @lemm:refresh-enqueue, there must be a successful refresh call during $[t', t_0]$. $(2)$
+  At some time after $t'$ and before $t_0$, $e$ must enter its slot-refresh phase. Due to @lemm:refresh-enqueue, there must either be a successful refresh call during $[t', t_0]$ or the enqueue $e$'s `refresh_enqueue` itself must be successful without executing its CAS sequence.
 
-  From $(1)$ and $(2)$, $s l o t(r, t) <= c$ for any $t in [t_0, t_1]$.
+  If there is a successful refresh call during $[t', t_0]$. From $(1)$, $s l o t(r, t) <= c$ for any $t in [t_0, t_1]$.
+
+  Suppose there is no successful refresh call during $[t', t_0]$. Then, $e$'s `refresh_enqueue` is successful without executing its CAS sequence. According to the code, this is because there is another item in the queue while `refresh_enqueue` is executing. Therefore, $s l o t (r, t_2) <= c$ for some time $t_2 in [t', t_0]$. Combined with $(1)$, we have $s l o t (r, t) <= c$ for any $t in [t_0, t_1]$.
+
+  In conclusion, the lemma holds.
 ]
 
 #theorem[
@@ -266,8 +270,6 @@ We assume all enqueues succeed in this section. Note that a failed enqueue only 
   If $e_1$ and $e_2$ target the same slot, due to the underlying SPSC being linearizable and $e_1 prec_h e_2$, $d_2$ cannot match $e_2$ while $e_1$ is still unmatched.
 
   Note that $d_2$'s slot-scan phase involves 2 scans.
-
-
 
   Suppose $e_1$ targets the slot at a lower rank than $e_2$'s slot. If $d_2$ finds $e_2$ in the first scan, then in the second scan, because $e_1 prec_h e_2$, $d_2$ would have seen and prioritized $e_1$'s timestamp, which is a contradiction. Therefore, $d_2$ must have found $e_2$ in the second scan. Suppose during the first scan, it finds $e' != e_2$. Then, $e'$'s timestamp is larger than $e_2$'s. Because during the second scan, $e_1$ is not chosen, its slot-refresh phase must finish after $e'$'s, which already finishes in the first scan. Because $e_1 prec_h e_2$, $e_2$ must start after $e'$ slot-refresh phase, so it must obtain a larger timestamp than $e'$, which is a contradiction.
 
