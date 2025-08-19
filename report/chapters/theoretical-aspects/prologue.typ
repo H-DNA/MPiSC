@@ -44,7 +44,7 @@ Consider a history $h$. Suppose every enqueue event inserts a unique value. Cons
 We suppose that every enqueue inserts a unique value. In a complete history $h$ of an MPSC queue, there are 4 types of violation, based on @aspect-proof-paper.
 - (`VFresh`): A dequeue returns a value not previously inserted by any enqueue. Formally, there exists a dequeue event that returns `true` at time $t$ but no enqueue event matches it at time $t$.
 - (`VRepet`): Two dequeues return the value inserted by the same enqueue. Formally, there exists an enqueue event that matches two dequeue events at some time $t$.
-(`VOrd`): Two values are enqueued in a certain order, and a dequeue returns the later value before any dequeue of the earlier value starts. Formally, at some time $t$, there exist enqueue events $e_1$, $e_2$ such that $e_1 prec_h e_2$, $e_2$ matches $d_2$ at time $t$ but $e_1$ is unmatched at time $t$.
+- (`VOrd`): Two values are enqueued in a certain order, and a dequeue returns the later value before any dequeue of the earlier value starts. Formally, at some time $t$, there exist enqueue events $e_1$, $e_2$ such that $e_1 prec_h e_2$, $e_2$ matches $d_2$ at time $t$ but $e_1$ is unmatched at time $t$.
 - (`VWit`): A dequeue returning `false` even though the queue is never empty during the execution of the dequeue. Formally, there exists a dequeue $d$ starting at time $t$ and returning `false` but there is an enqueue $e$ that finishes before $t$ and is still unmatched at $t$. This notion of `VWit` has been simplified for MPSC and SPSC queues. In the original paper, this violation is more complex to formulate.
 
 We can derive the important @theo:mpsc-linearizable from @aspect-proof-paper.
