@@ -91,11 +91,11 @@ This section establishes the correctness of our distributed SPSC.
 
 ==== ABA problem
 
-There's no CAS instruction in our simple distributed SPSC, so there's no potential for ABA problem.
+There is no CAS instruction in our simple distributed SPSC, so there's no potential for ABA problem.
 
 ==== Memory reclamation
 
-There's no dynamic memory allocation and deallocation in our simple distributed SPSC, so it is memory-safe.
+There is no dynamic memory allocation and deallocation in our simple distributed SPSC, so it is memory-safe.
 
 ==== Linearizability
 
