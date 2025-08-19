@@ -203,7 +203,7 @@ We assume all enqueues succeed in this section. Note that a failed enqueue only 
 ]
 
 #lemma[
-  If an enqueue $e$ begins its slot-refresh phase at time $t_0$ and finishes at time $t_1$, there's always at least one successful `refresh_enqueue` or `refresh_dequeue` on $r a n k(e)$ that starts and ends its CAS sequence between $t_0$ and $t_1$.
+  If an enqueue $e$ begins its slot-refresh phase at time $t_0$ and finishes at time $t_1$, there's always at least one successful `refresh_enqueue` on $r a n k(e)$ that does not execute its CAS sequence or one successful `refresh_enqueue` on $r a n k (e)$ that starts and ends its CAS sequence between $t_0$ and $t_1$ or one successful `refresh_dequeue` on $r a n k(e)$ that starts and ends its CAS sequence between $t_0$ and $t_1$.
 ] <lemm:refresh-enqueue>
 
 #proof[
