@@ -10,7 +10,7 @@
 #{ include "./distributed-queues/index.typ" }
 #pagebreak()
 
-#{ include "./preliminary-results/index.typ" }
+#{ include "./evaluation/index.typ" }
 #pagebreak()
 
 #{ include "./conclusion/index.typ" }
