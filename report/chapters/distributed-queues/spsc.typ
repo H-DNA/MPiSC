@@ -17,7 +17,7 @@
 
 == A simple baseline distributed SPSC <distributed-spsc>
 
-The two MPSC queue wrapper algorithms we propose in @dLTQueue and @slotqueue both utilize a baseline distributed SPSC data structure, which we will present in this section.
+The three MPSC queue algorithms proposed in @dLTQueue, @slotqueue and @dLTQueue-v2 all utilize a baseline distributed SPSC data structure, which we will present in this section.
 
 For implementation simplicity, we present a bounded SPSC, effectively make our proposed algorithms support only a bounded number of elements. However, one can trivially substitute another distributed unbounded SPSC to make our proposed algorithms support an unbounded number of elements, as long as this SPSC supports the same interface as ours.
 

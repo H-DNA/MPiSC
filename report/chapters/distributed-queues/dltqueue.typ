@@ -447,5 +447,3 @@ node_t {timestamp == MAX ? DUMMY_RANK : Self_rank, old_version + 1})`
 ) <ltqueue-dequeue-refresh-leaf>
 
 The `refreshLeaf`#sub(`d`) procedure is similar to `refreshLeaf`#sub(`e`), with appropriate changes to accommodate the dequeuer.
-
-
