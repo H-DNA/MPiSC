@@ -1,30 +1,6 @@
 = Evaluation <result>
 
-This section introduces our benchmarking process, including our setup, environment, metrics of interest, and our microbenchmark program. Most importantly, we showcase the preliminary results on how well our novel algorithms perform, especially Slotqueue. We conclude this section with a discussion about the implications of these results.
-
-Currently, performance-related properties are our main focus.
-
-== Benchmarking metrics
-
-This section provides an overview of the metrics we are interested in for our algorithms. Performance-wise, latency and throughput are the two most popular metrics. These metrics revolve around the concept of a "task". In our context, a task is a single method call of an MPSC queue algorithm, e.g., enqueue and dequeue. Note that in our discussion, any two tasks are independent. Roughly speaking, two tasks are independent if one does not need to depend on the output of another for it to finish or there does not exist a bigger task that needs to depend on the outputs of the tasks. This rules out pipeline parallelism, where a task needs to wait for the output of a preceding task, and data parallelism, where a big task is split into and needs to wait for the outputs of multiple smaller tasks.
-
-=== Throughput
-
-Throughput is the number of operations finished in a unit of time. Its unit is often given as $"ops"/"s"$ (operations per second), $"ops"/"ms"$ (operations per millisecond), or $"ops"/"us"$ (operations per microsecond). Intuitively, throughput is closest to our notion of "performance": The higher the throughput, the more tasks are done in a unit of time and, thus, the higher the performance. The implication is that our ultimate goal is to optimize the throughput metric of our algorithms.
-
-=== Latency
-
-Latency is the time it takes for a single task to complete. Its unit is often given as $"s"/"op"$ (seconds per operation), $"ms"/"op"$ (milliseconds per operation), or $"us"/"op"$ (microseconds per operation).
-
-Intuitively, to optimize latency, one should minimize the number of execution steps required by a task. Therefore, it is obvious that optimizing for latency is much clearer than optimizing for throughput.
-
-In concurrent algorithms, multiple tasks are executed by multiple processes. We observe that, if we fix the number of processes, the lower the average latency of a task, the larger the number of tasks that can be completed by a process, which implies higher throughput. Therefore, good latency often (but not always) implies good throughput.
-
-From the two points above, we can see that latency is a more intuitive metric to optimize for, while being quite indicative of the algorithm's performance.
-
-One question is: how do we optimize for latency? As we have discussed, we should minimize the number of execution steps. A key observation is that when the number of processes grows, contention should also grow, thus causing the number of steps taken by a task to grow and, thus, the average latency to deteriorate. Note that if we manage to keep the average latency of a task fixed while also increasing the number of processes, we gain higher throughput due to higher concurrency. The actionable insight is that if we minimize contention in our algorithms, our algorithms should scale with the number of processes.
-
-Following this discussion, we should aim to discover and optimize highly contended areas in our algorithms if we want to make them scale well to a large number of nodes/processes.
+This section introduces our benchmarking process, including our setup, environment, and our microbenchmark program. Most importantly, we showcase the results on how well our algorithms perform, especially Slotqueue. We conclude this section with a discussion about the implications of these results.
 
 == Benchmarking baselines
 
@@ -41,7 +17,7 @@ Our microbenchmark is as follows:
 -   All processes share a single MPSC; one of the processes is a dequeuer, and the rest are enqueuers.
 -   The enqueuers enqueue a total of $10^4$ elements.
 -   The dequeuer dequeues $10^4$ elements.
--   For MPSC, the MPSC is warmed up before the dequeuer starts.
+-   The MPSC is warmed up before the dequeuer starts.
 
 We measure the latency and throughput of the enqueue and dequeue operations. This microbenchmark is repeated 5 times for each algorithm, and we take the mean of the results.
 
