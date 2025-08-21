@@ -6,7 +6,7 @@ This section introduces our benchmarking process, including our setup, environme
 
 We use three MPSC queue algorithms as benchmarking baselines:
 
-- dLTQueue + our custom SPSC: Our most optimized version of LTQueue while still keeping the core algorithm intact.
+- dLTQueueV2 + our custom SPSC: Our most optimized version of LTQueue while still keeping the core algorithm intact.
 - Slotqueue + our custom SPSC: Our modification to dLTQueue to obtain a more optimized distributed version of LTQueue.
 - AMQueue @amqueue: A hosted bounded MPSC queue algorithm, already detailed in @dmpsc-related-works.
 
@@ -22,10 +22,6 @@ Our microbenchmark is as follows:
 We measure the latency and throughput of the enqueue and dequeue operations. This microbenchmark is repeated 5 times for each algorithm, and we take the mean of the results.
 
 == Benchmarking setup
-
-The experiments are carried out on a four-node cluster residing in the HPC Lab at Ho Chi Minh University of Technology. Each node is an Intel Xeon CPU E5-2680 v3, which has 8 cores and 16 GB RAM. The interconnect used is Ethernet and, thus, does not support true one-sided communication.
-
-The operating system used is Ubuntu 22.04.5. The MPI implementation used is MPICH version 4.0, released on January 21, 2022.
 
 == Benchmarking results
 
