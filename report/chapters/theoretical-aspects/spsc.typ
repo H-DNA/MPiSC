@@ -19,19 +19,15 @@
 
 In this section, we focus on the correctness and progress guarantee of the simple distributed SPSC established in @distributed-spsc.
 
-=== Correctness
-
-This section establishes the correctness of our distributed SPSC.
-
-==== ABA problem
+=== ABA problem
 
 There is no CAS instruction in our simple distributed SPSC, so there's no potential for ABA problem.
 
-==== Memory reclamation
+=== Memory reclamation
 
 There is no dynamic memory allocation and deallocation in our simple distributed SPSC, so it is memory-safe.
 
-==== Linearizability
+=== Linearizability
 
 We prove that our simple distributed SPSC is linearizable.
 
@@ -120,5 +116,3 @@ For `spsc_dequeue`, we consider the procedure @spsc-dequeue. Similarly, in the u
 For `spsc_readFront`#sub(`e`), we consider the procedure @spsc-enqueue-readFront. The operation on @line-spsc-e-readFront-resync-first is a truly remote operation, as the `First` control variable is hosted on the dequeuer. The operation on @line-spsc-e-readFront-read is a remote operation, as the `Data` array is hosted on the enqueuer. This means, theoretically, it also takes one remote operation plus a local one.
 
 For `spsc_readFront`#sub(`d`), we consider the procedure @spsc-dequeue-readFront. Only the operation on @line-spsc-d-readFront-read is executed always, which results in a truly remote operation as the Data array is hosted on the enqueuer. Therefore, it only takes one remote operation.
-
-

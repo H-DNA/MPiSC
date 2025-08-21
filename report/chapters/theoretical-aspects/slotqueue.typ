@@ -56,11 +56,7 @@ The followings are some other definitions that will be used throughout our proof
 
 #definition[For a dequeue, *slot-scan phase* refer to its execution of @line-slotqueue-read-min-rank-init-buffer - @line-slotqueue-read-min-rank-return of @slotqueue-read-minimum-rank.]
 
-=== Correctness
-
-This section establishes the correctness of Slotqueue introduced in @slotqueue.
-
-==== ABA problem
+=== ABA problem
 
 Noticeably, we use no scheme to avoid ABA problem in Slotqueue. In actuality, ABA problem does not adversely affect our algorithm's correctness, except in the extreme case that the 64-bit distributed counter overflows, which is unlikely.
 
@@ -174,11 +170,11 @@ Both `CAS`es target some slot in the `Slots` array.
   This follows from @slotqueue-aba-safe-enqueue-theorem and @slotqueue-aba-safe-dequeue-theorem.
 ]
 
-==== Memory reclamation
+=== Memory reclamation
 
 Notice that Slotqueue pushes the memory reclamation problem to the underlying SPSC. If the underlying SPSC is memory-safe, Slotqueue is also memory-safe.
 
-==== Linearizability
+=== Linearizability
 
 We assume all enqueues succeed in this section. Note that a failed enqueue only causes the counter to increment, and does not change the queue state in any other ways.
 

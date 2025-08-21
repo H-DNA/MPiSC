@@ -72,11 +72,7 @@ We will refer `propagate`#sub(`e`) and `propagate`#sub(`d`) as `propagate` if th
 
 #definition[`refreshLeaf`#sub(`d`) (@ltqueue-dequeue-refresh-leaf) is said to start its *CAS-sequence* if it finishes @line-ltqueue-d-refresh-leaf-read. `refreshLeaf`#sub(`d`) is said to end its *CAS-sequence* if it finishes @line-ltqueue-d-refresh-leaf-cas.]
 
-=== Correctness
-
-This section establishes the correctness of dLTQueue introduced in @dLTQueue.
-
-==== ABA problem
+=== ABA problem
 
 We use CAS instructions on:
 - @line-ltqueue-e-refresh-timestamp-CAS-empty and @line-ltqueue-e-refresh-timestamp-CAS-not-empty of `refreshTimestamp`#sub(`e`) (@ltqueue-enqueue-refresh-timestamp).
@@ -88,11 +84,11 @@ We use CAS instructions on:
 
 Notice that at these locations, we increase the associated version tags of the CAS-ed values. These version tags are 32-bit in size, therefore, practically, ABA problem can't virtually occur. It's safe to assume that there's no ABA problem in dLTQueue.
 
-==== Memory reclamation
+=== Memory reclamation
 
 Notice that dLTQueue pushes the memory reclamation problem to the underlying SPSC. If the underlying SPSC is memory-safe, dLTQueue is also memory-safe.
 
-==== Linearizability
+=== Linearizability
 
 We assume all enqueues succeed in this section. Note that a failed enqueue only causes the counter to increment, and does not change the queue state in any other ways.
 
