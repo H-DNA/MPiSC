@@ -1,8 +1,8 @@
 = Evaluation <result>
 
-This section introduces our benchmarking process, including our setup, environment, and our microbenchmark program. Most importantly, we showcase the results on how well our algorithms perform, especially Slotqueue. We conclude this section with a discussion about the implications of these results.
+This section introduces our benchmarking process, including the benchmarking baselines (@benchmark-baseline), the benchmarking environment (@benchmark-environment) and the microbenchmark program (@microbenchmark). Most importantly, we showcase the results on how well our algorithms perform and conclude with a discussion about the implications of these results in @benchmark-result.
 
-== Benchmarking baselines
+== Benchmarking baselines <benchmark-baseline>
 
 We use three MPSC queue algorithms as benchmarking baselines:
 
@@ -10,7 +10,9 @@ We use three MPSC queue algorithms as benchmarking baselines:
 - Slotqueue + our custom SPSC: Our modification to dLTQueue to obtain a more optimized distributed version of LTQueue.
 - AMQueue @amqueue: A hosted bounded MPSC queue algorithm, already detailed in @dmpsc-related-works.
 
-== Microbenchmark program
+== Benchmarking environment <benchmark-environment>
+
+== Microbenchmark program <microbenchmark>
 
 Our microbenchmark is as follows:
 
@@ -21,9 +23,7 @@ Our microbenchmark is as follows:
 
 We measure the latency and throughput of the enqueue and dequeue operations. This microbenchmark is repeated 5 times for each algorithm, and we take the mean of the results.
 
-== Benchmarking setup
-
-== Benchmarking results
+== Benchmarking results <benchmark-result>
 
 #import "@preview/subpar:0.2.2"
 
