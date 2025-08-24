@@ -33,7 +33,7 @@ We measure the latency and throughput of the enqueue and dequeue operations. Thi
 
 #import "@preview/subpar:0.2.2"
 
-@enqueue-benchmark, @dequeue-benchmark, and @total-benchmark showcase our benchmarking results, with the y-axis drawn in log scale.
+@enqueue-benchmark, @dequeue-benchmark, and @total-benchmark showcase our benchmarking results.
 
 #subpar.grid(
   figure(
