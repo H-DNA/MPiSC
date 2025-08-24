@@ -12,6 +12,12 @@ We use three MPSC queue algorithms as benchmarking baselines:
 
 == Benchmarking environment <benchmark-environment>
 
+We conduct all benchmark evaluations using computing resources at the Leibniz Supercomputing Center#footnote[https://www.lrz.de/], specifically leveraging both the SuperMUC-NG#footnote[https://doku.lrz.de/supermuc-ng-10745965.html] and CoolMUC-4#footnote[https://doku.lrz.de/coolmuc-4-1082337877.html] systems.
+
+SuperMUC-NG provides extensive computational capacity through its configuration of over 6,000 compute nodes. Each node features 48 processing cores powered by Intel Xeon Platinum 8174 processors and is equipped with a minimum of 96GB of memory. Inter-node communication is facilitated by a high-performance OmniPath network delivering 100GBit/s bandwidth. The platform operates on SUSE Linux Enterprise Server 15.3 and employs Intel MPI Version 2019 Update 12 Build 20210429 for parallel processing coordination.
+
+For additional computational resources, we utilize the CoolMUC-4 infrastructure, which comprises over 100 compute nodes totaling approximately 12,000 processing cores. These nodes are powered by Intel Xeon Platinum 8480+ processors, with each node providing 112 cores of processing capability. Node-to-node connectivity is established through an Infiniband network architecture. The system environment consists of SUSE Linux Enterprise Server 15.6 with Intel MPI Version 2021.12 Build 20240213 handling message passing operations.
+
 == Microbenchmark program <microbenchmark>
 
 Our microbenchmark is as follows:
@@ -31,45 +37,77 @@ We measure the latency and throughput of the enqueue and dequeue operations. Thi
 
 #subpar.grid(
   figure(
-    image("../../static/images/enqueue_latency_comparison.png"),
-    caption: [Enqueue latency benchmark results.],
+    image("../../static/images/cm4/enqueue_latency_comparison.png"),
+    caption: [Enqueue latency benchmark results on CoolMUC-4.],
   ),
-  <enqueue-latency-benchmark>,
+  <cm4-enqueue-latency-benchmark>,
   figure(
-    image("../../static/images/enqueue_throughput_comparison.png"),
-    caption: [Enqueue throughput benchmark results],
+    image("../../static/images/cm4/enqueue_throughput_comparison.png"),
+    caption: [Enqueue throughput benchmark results on CoolMUC-4.],
   ),
-  <enqueue-throughput-benchmark>,
+  <cm4-enqueue-throughput-benchmark>,
+  figure(
+    image("../../static/images/sm/enqueue_latency_comparison.png"),
+    caption: [Enqueue latency benchmark results on SuperMUC.],
+  ),
+  <sm-enqueue-latency-benchmark>,
+  figure(
+    image("../../static/images/sm/enqueue_throughput_comparison.png"),
+    caption: [Enqueue throughput benchmark results on SuperMUC.],
+  ),
+  <sm-enqueue-throughput-benchmark>,
   columns: (1fr, 1fr),
-  caption: [Microbenchmark results for enqueue operation.],
+  caption: [Microbenchmark results for the enqueue operation.],
   label: <enqueue-benchmark>,
 )
 
 #subpar.grid(
   figure(
-    image("../../static/images/dequeue_latency_comparison.png"),
-    caption: [Dequeue latency benchmark results.],
+    image("../../static/images/cm4/dequeue_latency_comparison.png"),
+    caption: [Dequeue latency benchmark results on CoolMUC-4.],
   ),
-  <dequeue-latency-benchmark>,
+  <cm4-dequeue-latency-benchmark>,
   figure(
-    image("../../static/images/dequeue_throughput_comparison.png"),
-    caption: [Dequeue throughput benchmark results],
+    image("../../static/images/cm4/dequeue_throughput_comparison.png"),
+    caption: [Dequeue throughput benchmark results on CoolMUC-4.],
   ),
-  <dequeue-throughput-benchmark>,
+  <cm4-dequeue-throughput-benchmark>,
+  figure(
+    image("../../static/images/sm/dequeue_latency_comparison.png"),
+    caption: [Dequeue latency benchmark results on SuperMUC.],
+  ),
+  <cm4-dequeue-latency-benchmark>,
+  figure(
+    image("../../static/images/sm/dequeue_throughput_comparison.png"),
+    caption: [Dequeue throughput benchmark results on SuperMUC.],
+  ),
+  <cm4-dequeue-throughput-benchmark>,
+
   columns: (1fr, 1fr),
-  caption: [Microbenchmark results for dequeue operation.],
+  caption: [Microbenchmark results for the dequeue operation.],
   label: <dequeue-benchmark>,
 )
 
-#figure(
-  image("../../static/images/total_throughput_comparison.png"),
-  caption: [Microbenchmark results for total throughput.],
-) <total-benchmark>
+#subpar.grid(
+  figure(
+    image("../../static/images/cm4/total_throughput_comparison.png"),
+    caption: [Total throughput benchmark results on CoolMUC-4.],
+  ),
+  <cm4-total-throughput-benchmark>,
+  figure(
+    image("../../static/images/sm/total_throughput_comparison.png"),
+    caption: [Total throughput benchmark results on SuperMUC.],
+  ),
+  <sm-total-throughput-benchmark>,
+  columns: (1fr, 1fr),
+  caption: [Microbenchmark results for the total throughput.],
+  label: <total-benchmark>,
+)
 
-The most evident thing is that @total-benchmark and @dequeue-throughput-benchmark are almost identical. This supports our claim that in an MPSC queue, the performance is bottlenecked by the dequeuer.
+The most evident thing is that the trends in total throughput and dequeue throughput are almost identical. This supports our claim that in an MPSC queue, the performance is bottlenecked by the dequeuer.
 
-For enqueue latency and throughput, Slotqueue performs far better than dLTQueue while being slightly better than AMQueue. This is in line with our theoretical projection in @summary-of-distributed-mpscs. One concerning trend is that Slotqueue's enqueue throughput seems to degrade with the number of nodes, which signals a potential scalability problem. This is further problematic in that our theoretical model suggests that the cost of enqueue is always fixed. This is to be investigated further in the future.
+Slotqueue demonstrates superior enqueue performance compared to AMQueue on both CoolMUC-4 and SuperMUC-NG systems, achieving roughly double the throughput. Meanwhile, dLTQueue performs the worst enqueue-wise. The performance advantage of Slotqueue results from reduced contention between concurrent enqueuers and minimal interference between enqueue and dequeue operations in Slotqueue's architecture, unlike AMQueue's design. However, despite Slotqueue and dLTQueue's theoretical guarantee of constant-time enqueue operations, practical measurements reveal declining enqueue throughput as cluster size increases. This performance degradation occurs due to heightened competition for the shared counter resource among multiple enqueuers, which eventually overwhelms the interconnect infrastructure's capacity.
 
-For dequeue latency and throughput, Slotqueue and AMQueue are quite closely matched, while being better than dLTQueue. This is expected, agreeing with our projection of dequeue wrapping overhead in @summary-of-distributed-mpscs. Furthermore, Slotqueue is conceived as a more dequeuer-optimized version of dLTQueue. Based on this empirical result, it is reasonable to believe this to be the case. Unlike enqueue, the dequeue latency of Slotqueue seems to be quite stable, increasing very slowly. Because the dequeuer is the bottleneck of an MPSC, this is a good sign for the scalability of Slotqueue.
+In contrast, Slotqueue and dLTqueue's dequeue performance significantly lags behind AMQueue, showing 10-fold slower performance on CoolMUC-4 and 3-fold slower performance on SuperMUC-NG. While Slotqueue and dLTQueue executes only a limited number of remote operations per dequeue compared to AMQueue's potentially unlimited remote operations, AMQueue's batch processing capability dramatically enhances its dequeue throughput. Additionally, AMQueue's architecture stores all data locally on the dequeuer node, eliminating remote operations during dequeue processes entirely. Consequently, Slotqueue and dLTQueue's benefits become less pronounced when measured against AMQueue's optimized approach. Similar to enqueue operations, dequeue throughput also declines with increasing node count, as more processes competing for access to the dequeuer node intensify contention at that critical bottleneck.
 
-In conclusion, based on @total-benchmark, Slotqueue seems to perform better than dLTQueue and AMQueue in terms of both enqueue and dequeue operations, both latency-wise and throughput-wise. The overhead of a logarithmic-order number of remote operations in dLTQueue seems to be costly, adversely affecting its performance when the number of nodes increases. Additionally, compared to AMQueue, dLTQueue and Slotqueue also have the advantage of fault tolerance, which, due to the blocking nature of AMQueue, cannot be promised.
+While Slotqueue and dLTQueue offers superior fault tolerance compared to AMQueue and maintains competitive performance across both evaluated systems, it faces challenges under high-contention scenarios. In large-scale cluster deployments, the dequeuer node becomes overwhelmed by numerous remote memory access requests. Therefore, Slotqueue and dLTQueue would benefit from additional optimizations focused on alleviating contention pressure at the dequeuer node to realize its full potential in distributed environments.
