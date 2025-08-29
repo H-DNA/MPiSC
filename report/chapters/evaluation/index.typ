@@ -4,7 +4,7 @@ This section introduces our benchmarking process, including the benchmarking bas
 
 == Benchmarking baselines <benchmark-baseline>
 
-We use three MPSC queue algorithms as benchmarking baselines:
+Three MPSC queue algorithms are used as benchmarking baselines:
 
 - dLTQueueV2 + our custom SPSC: Our most optimized version of LTQueue while still keeping the core algorithm intact.
 - Slotqueue + our custom SPSC: Our modification to dLTQueue to obtain a more optimized distributed version of LTQueue.
