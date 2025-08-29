@@ -2,7 +2,7 @@
 
 #import "@preview/subpar:0.2.2"
 
-This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues", based on which we set out the objectives and scope of this study. To summarize, we then come to the formulation of our research question and give a high-level overview of the thesis. We end this chapter with a brief description of the structure of the rest of this document.
+This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues" (@motivation), based on which we set out the objectives (@objective) and scope (@scope) of this study. To summarize, we then come to the formulation of our research question (@research-question) and the overall contributions of the thesis are listed in @contributions. This chapter is ended with a brief description of the structure of the rest of this document.
 
 == Motivation <motivation>
 
@@ -17,7 +17,7 @@ The work by @atomic-objects introduces a method for creating non-blocking distri
 The HCL framework @hcl provides a distributed data structure library built on RPC over RDMA technology. While functional, this approach demands specialized hardware capabilities from contemporary network interface cards, limiting its portability @bclx. BCL Core @bcl presents a highly portable solution capable of interfacing with multiple distributed programming backends including MPI, SHMEM, and GASNet-EX. However, BCL Core's architecture incorporates 128-bit pointers, creating the same RDMA hardware compatibility issues as @atomic-objects.
 For our research, we have selected BCL CoreX @bclx and adopted its design philosophy to adapt existing shared-memory MPSC queues for distributed computing environments. BCL CoreX @bclx extends the original BCL @bcl framework with enhanced features that simplify the development of non-blocking distributed data structures. A key innovation in their approach is the implementation of 64-bit pointers, which are compatible with virtually all large-scale computing clusters and supported by most RDMA hardware configurations. To address ABA problems without relying on specialized instructions like DCAS, they have developed a distributed hazard pointer mechanism. This generic solution provides sufficient portability and flexibility to accommodate the adaptation of most existing non-blocking shared-memory data structures to distributed environments.
 
-In summary, we focus on the design of efficient non-blocking distributed MPSC queues using the BCL CoreX library as the main implementation framework. The next few sections will list the objectives in more details (@objective, @scope), sum them up in a research question (@research-question) and in an overview picture of the thesis (@overview).
+In summary, we focus on the design of efficient non-blocking distributed MPSC queues using the BCL CoreX library as the main implementation framework. The next few sections will list the objectives in more details and sum them up in a research question.
 
 == Objective <objective>
 
@@ -46,30 +46,19 @@ Any research effort in this thesis revolves around this research question:
 
 #quote()[How to utilize shared-memory programming principles to model and design distributed MPSC queue algorithms in a correct, fault-tolerant and performant manner?]
 
-We further decompose this question into smaller subquestions:
+This question is further decomposed into smaller subquestions:
 + How to model the correctness of a distributed MPSC queue algorithm?
 + Which factors contribute to the fault tolerance and performance of distributed MPSC queue algorithms?
 + Which shared-memory programming principles are relevant in modeling and designing distributed MPSC queue algorithms in a fault-tolerant and performant manner?
 + Which shared-memory programming principles need to be modified to more effectively model and design distributed MPSC queue algorithms in a fault-tolerant and performant manner?
 
-== Thesis overview <overview>
+== Contributions <contributions>
 
-An overview of this thesis is given in @thesis-overview.
+This research makes two primary contributions to the field of distributed programming:
+- An application of a novel design technique for non-blocking distributed data structures - via adaptation of non-blocking shared-memory data structures. The thesis demonstrates the feasibility of this approach in designing new non-blocking distributed data structures.
+- Three novel wait-free distributed MPSC queues: dLTQueueV1, Slotqueue and dLTQueueV2, which are all fault-tolerant. Slotqueue and dLTQueueV2 are especially optimized for performance.
 
-This thesis explores the shared-memory programming model to design fault-tolerant and performant concurrent algorithms using atomic operations. Traditionally, in this aspect, two notorious problems often arise: ABA problem and safe memory reclamation. We investigate the traditional techniques used in the shared-memory literature to resolve these problems and appropriately adapt them to solve similar issues when designing fault-tolerant and performant distributed MPSC queues.
-
-This thesis contributes three new wait-free distributed MPSC queue algorithms. Theoretically, we are concerned with their correctness (linearizability), progress guarantee (lock-freedom and wait-freedom) and their theoretical performance. The thesis concludes with an empirical analysis of our novel algorithms to see if their actual behavior matches our theoretical performance model.
-
-#place(
-  center + top,
-  float: true,
-  scope: "parent",
-  [#figure(
-      image("/static/images/thesis-overview.png"),
-      caption: [An overview of this thesis.],
-    ) <thesis-overview>
-  ],
-)
+In conclusion, this work establishes a foundation for future research in fault-tolerant distributed data structures while providing immediately usable implementations for practitioners.
 
 == Structure <structure>
 
