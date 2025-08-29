@@ -2,7 +2,7 @@
 
 #import "@preview/subpar:0.2.2"
 
-This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues" (@motivation), based on which we set out the objectives (@objective) and scope (@scope) of this study. To summarize, we then come to the formulation of our research question (@research-question) and the overall contributions of the thesis are listed in @contributions. This chapter is ended with a brief description of the structure of the rest of this document.
+This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues" (@motivation), based on which we set out the objectives (@objective) and scope (@scope) of this study. To summarize, we then come to the formulation of the research question (@research-question) and the overall contributions of the thesis are listed in @contributions. This chapter is ended with a brief description of the structure of the rest of this document.
 
 == Motivation <motivation>
 
