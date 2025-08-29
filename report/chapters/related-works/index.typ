@@ -1,6 +1,6 @@
 = Related works <related-works>
 
-Given our decision to adapt shared-memory data structures for creating non-blocking distributed MPSC queues with BCL CoreX (@bclx-library), we next explore existing non-blocking shared-memory MPSC queues in @shared-mem-mpscs. Additionally, we analyze current distributed MPSC queue implementations in @dmpsc-related-works to establish benchmarking baseline. Based on this analysis, we selected LTQueue as our candidate shared-memory MPSC queue for distributed adaptation and chose AMQueue as our primary benchmark reference.
+Given the decision to adapt shared-memory data structures for creating non-blocking distributed MPSC queues with BCL CoreX (@bclx-library), the next step is to explore existing non-blocking shared-memory MPSC queues in @shared-mem-mpscs. Additionally, current distributed MPSC queue implementations are analyzed in @dmpsc-related-works to establish benchmarking baselines. Based on this analysis, LTQueue is selected as the candidate shared-memory MPSC queue for distributed adaptation and AMQueue is chosen as the primary benchmark reference.
 
 == Non-blocking shared-memory MPSC queues <shared-mem-mpscs>
 
