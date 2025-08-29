@@ -2,11 +2,11 @@
 
 = Background <background>
 
-This chapter provides various information about the terminology referenced throughout this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, we first discuss two irregular applications in @irregular-applications. Next, we decide what it means for a concurrent algorithm to be correct in @correctness-condition and the progress guarantee characteristics of concurrent algorithms in @progress-guarantee. From there, we decide to design linearizable non-blocking distributed MPSC queues. Therefore, we are concerned with the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arise in this design process such as ABA problem and safe memory reclamation problem in @issues. We finally introduce the practical libraries to help us realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
+This chapter provides the background for the terminology referenced throughout this thesis. To motivate the discussion of MPSC queues in @mpsc-queue, the chapter first discusses two irregular applications in @irregular-applications. Next, it establishes what it means for a concurrent algorithm to be correct in @correctness-condition and the progress guarantee characteristics of concurrent algorithms in @progress-guarantee. From there, the decision is to design linearizable non-blocking distributed MPSC queues. Therefore, this work focuses on the tools needed to design non-blocking algorithms in @atomic-instructions and the issues that arise in this design process such as ABA problem and safe memory reclamation problem in @issues. The chapter finally introduces the practical libraries to help realize non-blocking distributed MPSC queues in @mpi, @pure-mpi and @bclx-library.
 
 == Irregular applications <irregular-applications>
 
-MPSC queue (@mpsc-queue) and its applications belong to a class called irregular applications. Designing irregular applications needs to take into account their special properties, which motivates @mpi, @pure-mpi, @bclx-library. Therefore, before we discuss MPSC queue in @mpsc-queue, we explain the term "irregular application" in this section.
+MPSC queues and their applications belong to the class of irregular applications. Designing irregular applications needs to take into account their special properties. Therefore, before we discuss MPSC queue in @mpsc-queue, we explain the term "irregular application" in this section.
 
 Irregular applications @feo2011irregular are a class of programs particularly interesting in distributed computing. They are characterized by:
 - Unpredictable memory access: Before the program is actually run, we cannot know which data it will need to access. We can only know that at run time.
@@ -45,7 +45,7 @@ We have seen the role MPSC queues play in supporting irregular applications. It 
 
 == MPSC queue <mpsc-queue>
 
-Having established the notion of irregular applications in @irregular-applications, we can dicuss about our design goal, distributed MPSC queue, which is an irregular application itself, in this section. The design criteria will be detailed later, in @correctness-condition and @progress-guarantee.
+With irregular applications defined in @irregular-applications, the focus can now turn to the primary design goal of this thesis: MPSC queues.
 
 Multi-producer, single-consumer (MPSC) queue is a specialized concurrent first-in first-out (FIFO) data structure. A FIFO is a container data structure where items can be inserted into or taken out of, with the constraint that the items that are inserted earlier are taken out earlier. Hence, it is also known as the queue data structure. The process that performs item insertion into the FIFO is called the producer and the process that performs item deletion (and retrieval) is called the consumer.
 
@@ -58,7 +58,7 @@ As an implication, some irregular applications can actually "push" the "irregula
 
 == Correctness condition of concurrent algorithms <correctness-condition>
 
-We have established our design goal in the previous sections (@irregular-applications, @mpsc-queue), that is MPSC queue. During this design process, we have to take into account its correctness, which is the subject of this section. The fault tolerance characteristic, although important, is less compared to correctness, and so will be deferred to @progress-guarantee.
+During the design of MPSC queues, correctness must be carefully considered to ensure proper functionality in distributed environments. This section examines the correctness requirements that must be addressed when designing MPSC queues.
 
 Correctness of concurrent algorithms is hard to define, regarding the semantics of concurrent data structures like MPSC queues. One effort to formalize the correctness of concurrent data structures is the definition of *linearizability* @herlihy-linearizability. A method call on the FIFO can be visualized as an interval spanning two points in time. The starting point is called the *invocation event* and the ending point is called the *response event*. *Linearizability* informally states that each method call should appear to take effect instantaneously at some moment between its invocation event and response event @art-of-multiprocessor-programming. The moment the method call takes effect is termed the *linearization point*. Specifically, suppose the following:
 - We have $n$ concurrent method calls $m_1$, $m_2$, ..., $m_n$.
@@ -77,7 +77,7 @@ Linearizability is widely used as a correctness condition because of (1) its com
 
 == Fault-tolerance & progress guarantee of concurrent algorithms <progress-guarantee>
 
-A correct algorithms can still be prone to faults at runtime, which varies from a process experiences an unexpected delay in its execution to a process crashes indefinitely. Therefore, fault tolerance is also an important criteria for our design goal, distributed MPSC queue (@mpsc-queue), besides correctness (@correctness-condition). This section will introduce the concept of progress guarantee, which is highly linked with fault tolerance. The techniques to achieve fault tolerance are discussed in the next section (@atomic-instructions).
+Correct algorithms can still be prone to faults at runtime, ranging from processes experiencing unexpected delays in execution to processes crashing indefinitely. Therefore, fault tolerance is also an important criterion for distributed MPSC queues (@mpsc-queue), in addition to correctness (@correctness-condition). This section introduces the concept of progress guarantees, which are closely linked with fault tolerance.
 
 Progress guarantee @art-of-multiprocessor-programming is a criterion that only arises in the context of concurrent algorithms. Informally, it is the degree of hindrance one process imposes on another process from completing its task. In the context of sequential algorithms, this is irrelevant because there is only ever one process. Progress guarantee has an implication on an algorithm's performance and fault tolerance, especially in adverse situations, as we will explain in the following sections.
 
@@ -126,7 +126,7 @@ Wait-freedom offers the strongest degree of progress guarantee. It mandates that
 
 == Popular atomic instructions in designing non-blocking algorithms <atomic-instructions>
 
-As we have discussed in @progress-guarantee, blocking algorithms are not fault tolerant while non-blocking ones are, specifically lock-free and wait-free algorithms. Therefore, our design goal can be refined to linearizable non-blocking distributed MPSC queue. Techniques to achieve this is discussed next in this section. Issues, however, arise during the application of these techniques, whose resolution will be deferred to @issues.
+As discussed in @progress-guarantee, blocking algorithms are not fault tolerant while non-blocking ones are, specifically lock-free and wait-free algorithms. Therefore, the design goal can be refined to linearizable non-blocking distributed MPSC queues. Techniques to achieve this are discussed next in this section.
 
 In non-blocking algorithms, finer-grained synchronization primitives than simple locks are required, which manifest themselves as atomic instructions. Therefore, it is necessary to get familiar with the semantics of these atomic instructions and common programming patterns associated with them.
 
@@ -198,7 +198,7 @@ LL/SC even though as powerful as CAS, is not as widespread as CAS; in fact, as o
 
 == Common issues when designing non-blocking algorithms <issues>
 
-Atomic instructions are the option we choose when it comes to designing non-blocking algorithms (@atomic-instructions). However, there are problems usually associated with this approach, that is ABA problem (@ABA-problem) and safe memory reclamation problem (@safe-memory-reclaim). Proper solutions to these issues are required to complete our design process, which has been discussed at length in @mpsc-queue, @correctness-condition, @progress-guarantee, @atomic-instructions. We move on to implementation techniques in section @mpi, @pure-mpi, @bclx.
+Atomic instructions represent the preferred approach for designing non-blocking algorithms (@atomic-instructions). However, this approach typically encounters two significant problems: the ABA problem (@ABA-problem) and the safe memory reclamation problem (@safe-memory-reclaim). Addressing these issues is essential for completing the design process outlined in the previous sections (@mpsc-queue, @correctness-condition, @progress-guarantee, @atomic-instructions).
 
 === ABA problem <ABA-problem>
 
@@ -434,7 +434,7 @@ Solutions to this problem must ensure that memory is only freed when no other pr
 
 == MPI-3 - A popular distributed programming library interface specification <mpi>
 
-To implement the design linearizable non-blocking distributed MPSC queues, the most basic choice we can go with is MPI, which will be the matter of this section. We specifically focus on the MPI-3 RMA API, because as will be explained, it facilitates the easy implementation of irregular applications such as MPSC queues. An approach of using MPI-3 RMA is covered in @pure-mpi. More advanced implementation techniques will be covered in @bclx-library.
+For implementing linearizable non-blocking distributed MPSC queues, MPI represents the most fundamental implementation choice and serves as the focus of this section. The discussion specifically examines the MPI-3 RMA API, which, as will be demonstrated, facilitates straightforward implementation of irregular applications such as MPSC queues. A pure MPI-3 RMA approach is detailed in @pure-mpi, while more advanced implementation techniques are explored in @bclx-library.
 
 MPI stands for message passing interface, which is a *message-passing library interface specification*. Design goals of MPI include high availability across platforms, efficient communication, thread safety, reliable and convenient communication interface while still allowing hardware-specific accelerated mechanisms to be exploited @mpi-3.1.
 
@@ -466,7 +466,7 @@ In *passive target synchronization*, any RMA communication calls must be within 
 
 == Pure MPI - A porting approach of shared memory algorithms to distributed algorithms <pure-mpi>
 
-With MPI (@mpi), we have the most basic facility to adapt shared-memory algorithms to distributed algorithms, which is MPI-3 RMA. However, MPI-3 RMA offer a wide range of utilities, which may not be quite well-suited to implement non-blocking distributed MPSC queues. In this section, we introduce one technique utilizing MPI-3 RMA to implement distributed non-blocking distributed algorithms. The BCL CoreX library (@bclx-library) is built on top of this approach.
+With MPI (@mpi), the most basic facility to adapt shared-memory algorithms to distributed algorithms is MPI-3 RMA. However, MPI-3 RMA offers a wide range of utilities, which may not be well-suited for implementing non-blocking distributed MPSC queues. This section introduces one technique utilizing MPI-3 RMA to implement non-blocking distributed algorithms. The BCL CoreX library (@bclx-library) is built on top of this approach.
 
 // === Pure MPI
 
