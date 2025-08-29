@@ -56,7 +56,7 @@ This question is further decomposed into smaller subquestions:
 
 This research makes two primary contributions to the field of distributed programming:
 - An application of a novel design technique for non-blocking distributed data structures - via adaptation of non-blocking shared-memory data structures. The thesis demonstrates the feasibility of this approach in designing new non-blocking distributed data structures.
-- Three novel wait-free distributed MPSC queues: dLTQueueV1, Slotqueue and dLTQueueV2, which are all fault-tolerant. Slotqueue and dLTQueueV2 are especially optimized for performance.
+- Three novel wait-free distributed MPSC queues: dLTQueue, Slotqueue and dLTQueueV2, which are all fault-tolerant. Slotqueue and dLTQueueV2 are especially optimized for performance.
 
 In conclusion, this work establishes a foundation for future research in fault-tolerant distributed data structures while providing immediately usable implementations for practitioners.
 
