@@ -32,15 +32,16 @@ public:
                        &this->_data_ptr, &this->_data_win);
       MPI_Win_allocate(sizeof(MPI_Aint), sizeof(MPI_Aint), this->_info, comm,
                        &this->_counter_ptr, &this->_counter_win);
+      MPI_Win_lock(MPI_LOCK_EXCLUSIVE, this->_dequeuer_rank, 0,
+                   this->_counter_win);
       *_counter_ptr = 0;
+      MPI_Win_unlock(this->_dequeuer_rank, this->_counter_win);
     } else {
       MPI_Win_allocate(0, sizeof(T), this->_info, comm, &this->_data_ptr,
                        &this->_data_win);
       MPI_Win_allocate(0, sizeof(MPI_Aint), this->_info, comm,
                        &this->_counter_ptr, &this->_counter_win);
     }
-    MPI_Win_flush_all(this->_data_win);
-    MPI_Win_flush_all(this->_counter_win);
   }
 
   LQueue(const LQueue &) = delete;
