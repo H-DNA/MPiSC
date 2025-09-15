@@ -63,8 +63,8 @@ In conclusion, this work establishes a foundation for future research in fault-t
 == Related Publications <publications>
 
 The following is a list of our academic publications that are relevant to the topic of this thesis:
-+ Huy, D.N.A., Nguyen M.-T., Diep, T.-D. & Thoai, N. dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue. in 2025 International Conference on Future Data and Security Engineering (2025). To appear.
-+ Huy, D.N.A., Diep, T.-D., Fürlinger, K. & Thoai, N. Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations. in 2025 The IFIP International Conference on Network and Parallel Computing (2025). To appear.
++ Huy DNA, Nguyen M-T, Diep T-D, Thoai N (2025) dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue. In: 2025 International Conference on Future Data and Security Engineering. To appear.
++ Huy DNA, Diep T-D, Fürlinger K, Thoai N (2025) Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations. In: 2025 The IFIP International Conference on Network and Parallel Computing. To appear.
 
 == Structure <structure>
 
