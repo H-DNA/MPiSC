@@ -57,4 +57,4 @@
 
 #include "/chapters/index.typ"
 
-#bibliography("/bibliography.bib", title: [References], style: "nature")
+#bibliography("/bibliography.bib", title: [References], style: "springer-basic")
