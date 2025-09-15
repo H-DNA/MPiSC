@@ -2,7 +2,7 @@
 
 #import "@preview/subpar:0.2.2"
 
-This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues" (@motivation), based on which the objectives (@objective) and scope (@scope) of this study are set out. To summarize, we then come to the formulation of the research question (@research-question) and the overall contributions of the thesis are listed in @contributions. This chapter is ended with a brief description of the structure of the rest of this document.
+This chapter details the motivation for our research topic: "Studying and developing non-blocking distributed MPSC queues" (@motivation), based on which the objectives (@objective) and scope (@scope) of this study are set out. To summarize, we then come to the formulation of the research question (@research-question) and the overall contributions of the thesis are listed in @contributions. Related academic publications that are relevant to this thesis are listed in @publications. This chapter is ended with a brief description of the structure of the rest of this document.
 
 == Motivation <motivation>
 
@@ -59,6 +59,12 @@ This research makes two primary contributions to the field of distributed progra
 - Three novel wait-free distributed MPSC queues: dLTQueue, Slotqueue and dLTQueueV2, which are all fault-tolerant. Slotqueue and dLTQueueV2 are especially optimized for performance.
 
 In conclusion, this work establishes a foundation for future research in fault-tolerant distributed data structures while providing immediately usable implementations for practitioners.
+
+== Related Publications <publications>
+
+The following is a list of our academic publications that are relevant to the topic of this thesis:
++ Huy, D.N.A., Nguyen M.-T., Diep, T.-D. & Thoai, N. dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue. in 2025 International Conference on Future Data and Security Engineering (2025). To appear.
++ Huy, D.N.A., Diep, T.-D., Fürlinger, K. & Thoai, N. Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations. in 2025 The IFIP International Conference on Network and Parallel Computing (2025). To appear.
 
 == Structure <structure>
 
