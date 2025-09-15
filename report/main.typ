@@ -57,4 +57,4 @@
 
 #include "/chapters/index.typ"
 
-#bibliography("/bibliography.yml", title: [References])
+#bibliography("/bibliography.bib", title: [References])
