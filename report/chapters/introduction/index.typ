@@ -60,7 +60,7 @@ This research makes two primary contributions to the field of distributed progra
 
 In conclusion, this work establishes a foundation for future research in fault-tolerant distributed data structures while providing immediately usable implementations for practitioners.
 
-== Related Publications <publications>
+== Related publications <publications>
 
 The following is a list of our academic publications that are relevant to the topic of this thesis:
 + Huy DNA, Nguyen M-T, Diep T-D, Thoai N (2025) dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue. In: 2025 International Conference on Future Data and Security Engineering. To appear.
