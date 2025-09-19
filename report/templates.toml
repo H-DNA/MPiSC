@@ -9,7 +9,7 @@ name = "Capstone Project"
 id = "CO4337"
 
 [committee]
-id = ""
+id = "7 - Khoa học máy tính"
 
 [[teachers]] 
 title = "Dr."
@@ -20,7 +20,7 @@ title = "Assoc. Prof. Dr."
 name = "Thoại Nam"
 
 [reviewer]
-name = ""
+name = "Lê Thanh Vân"
 
 [[students]]
 name = "Đỗ Nguyễn An Huy"

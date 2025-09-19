@@ -51,7 +51,7 @@ Major: Computer Science
       #for s in t.at("teachers") [
         #s.at("title")
         #s.at("name")\
-      ]\
+      ]
       #t.reviewer.name
     ],
   ),
