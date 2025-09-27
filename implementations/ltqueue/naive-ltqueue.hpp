@@ -2,14 +2,14 @@
 
 #include "../lib/comm.hpp"
 #include "../lib/distributed-counters/faa.hpp"
-#include "../lib/spsc/unbounded_spsc.hpp"
+#include "../lib/spsc/bounded_spsc.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <mpi.h>
 #include <vector>
 
-template <typename T> class NaiveUnboundedLTQueue {
+template <typename T> class NaiveLTQueue {
 private:
   struct alignas(8) tree_node_t {
     int32_t rank;
@@ -41,7 +41,7 @@ private:
   tree_node_t *_tree_ptr;
   MPI_Info _info;
 
-  UnboundedSpsc<data_t> _spsc;
+  Spsc<data_t> _spsc;
 
   int _get_number_of_processes() const {
     int number_processes;
@@ -312,7 +312,7 @@ private:
   }
 
 public:
-  NaiveUnboundedLTQueue(MPI_Aint dequeuer_rank, MPI_Comm comm)
+  NaiveLTQueue(MPI_Aint dequeuer_rank, MPI_Comm comm)
       : _comm{comm}, _dequeuer_rank{dequeuer_rank}, _spsc{dequeuer_rank, comm},
         _counter{dequeuer_rank, comm} {
 
@@ -356,9 +356,9 @@ public:
     MPI_Win_flush_all(this->_tree_win);
   }
 
-  NaiveUnboundedLTQueue(const NaiveUnboundedLTQueue &) = delete;
-  NaiveUnboundedLTQueue &operator=(const NaiveUnboundedLTQueue &) = delete;
-  NaiveUnboundedLTQueue(NaiveUnboundedLTQueue &&other) noexcept
+  NaiveLTQueue(const NaiveLTQueue &) = delete;
+  NaiveLTQueue &operator=(const NaiveLTQueue &) = delete;
+  NaiveLTQueue(NaiveLTQueue &&other) noexcept
       : _comm{other._comm}, _self_rank{other._self_rank},
         _dequeuer_rank{other._dequeuer_rank},
         _counter{std::move(other._counter)},
@@ -374,7 +374,7 @@ public:
     other._info = MPI_INFO_NULL;
   }
 
-  ~NaiveUnboundedLTQueue() {
+  ~NaiveLTQueue() {
     if (_min_timestamp_win != MPI_WIN_NULL) {
       MPI_Win_unlock_all(this->_min_timestamp_win);
       MPI_Win_free(&this->_min_timestamp_win);
