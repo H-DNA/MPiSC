@@ -88,7 +88,9 @@ int main(int argc, char **argv) {
     ltqueue_single_one_queue_microbenchmark(100000, 5);
     unbounded_ltqueue_single_one_queue_microbenchmark(100000, 5);
     ltqueue_node_single_one_queue_microbenchmark(100000, 5);
+    naive_unbounded_ltqueue_single_one_queue_microbenchmark(100000, 5);
     naive_ltqueue_single_one_queue_microbenchmark(100000, 5);
+    eo_ltqueue_single_one_queue_microbenchmark(100000, 5);
     amqueue_single_one_queue_microbenchmark(1000000, 5);
   }
 

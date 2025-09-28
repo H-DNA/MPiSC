@@ -312,8 +312,9 @@ private:
   }
 
 public:
-  EoLTQueue(MPI_Aint dequeuer_rank, MPI_Comm comm)
-      : _comm{comm}, _dequeuer_rank{dequeuer_rank}, _spsc{dequeuer_rank, comm},
+  EoLTQueue(MPI_Aint capacity_per_node, MPI_Aint dequeuer_rank, MPI_Comm comm)
+      : _comm{comm}, _dequeuer_rank{dequeuer_rank},
+        _spsc{capacity_per_node, dequeuer_rank, comm},
         _counter{dequeuer_rank, comm} {
 
     MPI_Comm_rank(comm, &this->_self_rank);
