@@ -11,13 +11,13 @@
 
 template <typename T> class HostedSlotQueue {
 private:
-  typedef uint64_t timestamp_t;
-  constexpr static timestamp_t MAX_TIMESTAMP = ~((uint64_t)0);
+  typedef uint32_t timestamp_t;
+  constexpr static timestamp_t MAX_TIMESTAMP = ~((uint32_t)0);
   constexpr static MPI_Aint DUMMY_RANK = ~((MPI_Aint)0);
 
   struct data_t {
     T data;
-    uint64_t timestamp;
+    uint32_t timestamp;
   };
 
   MPI_Comm _comm;
