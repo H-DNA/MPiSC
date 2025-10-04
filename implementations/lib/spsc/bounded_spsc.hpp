@@ -166,7 +166,7 @@ public:
       }
     }
 
-    awrite_sync(&data, this->_last_buf[this->_self_rank] % this->_capacity,
+    write_sync(&data, this->_last_buf[this->_self_rank] % this->_capacity,
                 this->_self_rank, this->_data_win);
     awrite_sync(&new_last, 0, this->_self_rank, this->_enqueuer_local_last_win);
     if (new_last % 10 == 0) {
@@ -193,7 +193,7 @@ public:
     for (int i = 0; i < size; ++i) {
       const uint64_t disp =
           (this->_last_buf[this->_self_rank] + i) % this->_capacity;
-      awrite_async(data.data() + i, disp, this->_self_rank, this->_data_win);
+      write_async(data.data() + i, disp, this->_self_rank, this->_data_win);
     }
     flush(this->_self_rank, this->_data_win);
     awrite_sync(&new_last, this->_self_rank, this->_dequeuer_rank,
@@ -215,7 +215,7 @@ public:
     }
 
     data_t data;
-    aread_sync(&data, this->_first_buf[this->_self_rank] % this->_capacity,
+    read_sync(&data, this->_first_buf[this->_self_rank] % this->_capacity,
                this->_self_rank, this->_data_win);
 
     *output = data;
@@ -241,13 +241,13 @@ public:
                                   [this->_cached_size[enqueuer_rank] - 1];
       --this->_cached_size[enqueuer_rank];
     } else {
-      aread_async(output, this->_first_buf[enqueuer_rank] % this->_capacity,
+      read_async(output, this->_first_buf[enqueuer_rank] % this->_capacity,
                   enqueuer_rank, this->_data_win);
       int nreads = std::min(this->_batch_size,
                             this->_last_buf[enqueuer_rank] - new_first);
       this->_cached_size[enqueuer_rank] = nreads;
       for (int i = 0; i < nreads; ++i) {
-        aread_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
+        read_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
                     (new_first + i) % this->_capacity, enqueuer_rank,
                     this->_data_win);
       }
@@ -278,7 +278,7 @@ public:
                                           this->_first_buf[enqueuer_rank]);
       this->_cached_size[enqueuer_rank] = nreads;
       for (int i = 0; i < nreads; ++i) {
-        aread_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
+        read_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
                     (this->_first_buf[enqueuer_rank] + i) % this->_capacity,
                     enqueuer_rank, this->_data_win);
       }

@@ -169,10 +169,10 @@ public:
       }
     }
 
-    awrite_sync(&data,
-                start_offset(this->_self_rank) +
-                    this->_last_buf[this->_self_rank] % this->_capacity,
-                this->_dequeuer_rank, this->_data_win);
+    write_sync(&data,
+               start_offset(this->_self_rank) +
+                   this->_last_buf[this->_self_rank] % this->_capacity,
+               this->_dequeuer_rank, this->_data_win);
     awrite_sync(&new_last, 0, this->_self_rank, this->_enqueuer_local_last_win);
     if (new_last % 10 == 0) {
       awrite_sync(&new_last, this->_self_rank, this->_dequeuer_rank,
@@ -198,8 +198,8 @@ public:
     for (int i = 0; i < size; ++i) {
       const uint64_t disp =
           (this->_last_buf[this->_self_rank] + i) % this->_capacity;
-      awrite_async(data.data() + i, start_offset(this->_self_rank) + disp,
-                   this->_dequeuer_rank, this->_data_win);
+      write_async(data.data() + i, start_offset(this->_self_rank) + disp,
+                  this->_dequeuer_rank, this->_data_win);
     }
     flush(this->_dequeuer_rank, this->_data_win);
     awrite_sync(&new_last, this->_self_rank, this->_dequeuer_rank,
@@ -221,10 +221,10 @@ public:
     }
 
     data_t data;
-    aread_sync(&data,
-               start_offset(this->_self_rank) +
-                   this->_first_buf[this->_self_rank] % this->_capacity,
-               this->_dequeuer_rank, this->_data_win);
+    read_sync(&data,
+              start_offset(this->_self_rank) +
+                  this->_first_buf[this->_self_rank] % this->_capacity,
+              this->_dequeuer_rank, this->_data_win);
 
     *output = data;
     return true;
@@ -249,18 +249,18 @@ public:
                                   [this->_cached_size[enqueuer_rank] - 1];
       --this->_cached_size[enqueuer_rank];
     } else {
-      aread_async(output,
-                  start_offset(enqueuer_rank) +
-                      this->_first_buf[enqueuer_rank] % this->_capacity,
-                  this->_dequeuer_rank, this->_data_win);
+      read_async(output,
+                 start_offset(enqueuer_rank) +
+                     this->_first_buf[enqueuer_rank] % this->_capacity,
+                 this->_dequeuer_rank, this->_data_win);
       int nreads = std::min(this->_batch_size,
                             this->_last_buf[enqueuer_rank] - new_first);
       this->_cached_size[enqueuer_rank] = nreads;
       for (int i = 0; i < nreads; ++i) {
-        aread_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
-                    start_offset(enqueuer_rank) +
-                        (new_first + i) % this->_capacity,
-                    this->_dequeuer_rank, this->_data_win);
+        read_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
+                   start_offset(enqueuer_rank) +
+                       (new_first + i) % this->_capacity,
+                   this->_dequeuer_rank, this->_data_win);
       }
       flush(this->_dequeuer_rank, this->_data_win);
     }
@@ -289,10 +289,10 @@ public:
                                           this->_first_buf[enqueuer_rank]);
       this->_cached_size[enqueuer_rank] = nreads;
       for (int i = 0; i < nreads; ++i) {
-        aread_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
-                    start_offset(enqueuer_rank) +
-                        (this->_first_buf[enqueuer_rank] + i) % this->_capacity,
-                    this->_dequeuer_rank, this->_data_win);
+        read_async(this->_cached_data[enqueuer_rank] + nreads - i - 1,
+                   start_offset(enqueuer_rank) +
+                       (this->_first_buf[enqueuer_rank] + i) % this->_capacity,
+                   this->_dequeuer_rank, this->_data_win);
       }
       flush(this->_dequeuer_rank, this->_data_win);
     }
