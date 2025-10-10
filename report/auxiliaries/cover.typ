@@ -63,17 +63,17 @@ Major: Computer Science
 #grid(
   columns: (1fr, 1fr),
   rows: (2em, auto),
-  column-gutter: .2cm,
+  column-gutter: .1cm,
   align(right, [*student*:]),
   align(
     left,
     for s in t.at("students") [
       #v(0.5em, weak: true)
-      #s.at("name") - #s.at("id")
+      #s.at("name") (#s.at("id"))
     ],
   ),
 )
 
 #v(1fr)
 
-HCMC, #datetime.today().display("[month]/[year]")
+HO CHI MINH CITY, #datetime.today().display("[month]/[year]")
