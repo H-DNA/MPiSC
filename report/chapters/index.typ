@@ -27,5 +27,7 @@
   ),
 )
 
-#{ include "./theoretical-aspects/index.typ" }
+#bibliography("/bibliography.bib", title: [References], style: "springer-basic")
+
 #pagebreak()
+#{ include "./theoretical-aspects/index.typ" }

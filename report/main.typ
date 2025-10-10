@@ -49,9 +49,10 @@
 #include "/auxiliaries/acknowledgement.typ"
 #pagebreak()
 
+#include "/auxiliaries/abstract.typ"
+#pagebreak()
+
 #include "/auxiliaries/outline.typ"
 #pagebreak()
 
 #include "/chapters/index.typ"
-
-#bibliography("/bibliography.bib", title: [References], style: "springer-basic")
