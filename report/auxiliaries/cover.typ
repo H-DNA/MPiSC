@@ -76,4 +76,4 @@ Major: Computer Science
 
 #v(1fr)
 
-HO CHI MINH CITY, #datetime.today().display("[month]/[year]")
+HO CHI MINH CITY, 7/10/2025
