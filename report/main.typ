@@ -43,6 +43,22 @@
 #include "/auxiliaries/cover.typ"
 #pagebreak()
 
+#set page(margin: 0pt)
+#image("static/images/mission_form.jpg", width: 100%, height: 100%, fit: "stretch")
+#pagebreak()
+#image("static/images/assessment_form.jpg", width: 100%, height: 100%, fit: "stretch")
+#pagebreak()
+#image("static/images/review_1_form.jpg", width: 100%, height: 100%, fit: "stretch")
+#pagebreak()
+#image("static/images/review_2_form.jpg", width: 100%, height: 100%, fit: "stretch")
+#pagebreak()
+#set page(
+  paper: "a4",
+  header: { include "/auxiliaries/header.typ" },
+  footer: { include "/auxiliaries/footer.typ" },
+  margin: (top: 20mm, bottom: 20mm, left: 30mm, right: 20mm),
+)
+
 #include "/auxiliaries/disclaimer.typ"
 #pagebreak()
 
