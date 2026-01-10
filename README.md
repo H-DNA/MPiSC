@@ -33,152 +33,173 @@
 
 
 
+![MPiSC](https://img.shields.io/badge/MPiSC-blue?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyTDIgN2wxMCA1IDEwLTV6TTIgMTdsMTAgNSAxMC01TTIgMTJsMTAgNSAxMC01Ii8+PC9zdmc+) ![Status](https://img.shields.io/badge/status-complete-brightgreen) [![Thesis](https://img.shields.io/badge/thesis-h--dna.github.io-informational)](https://h-dna.github.io/MPiSC/)
+
+This project ports lock-free Multiple-Producer Single-Consumer (MPSC) queue algorithms from shared-memory to distributed systems using MPI-3 Remote Memory Access (RMA).
+
+### Table of Contents
+
+- [Publications](#publications)
+- [Objective](#objective)
+- [Motivation](#motivation)
+- [Approach](#approach)
+  - [Why MPI RMA?](#why-mpi-rma)
+  - [Why MPI-3 RMA?](#why-mpi-3-rma)
+  - [Hybrid MPI+MPI](#hybrid-mpimpi)
+  - [Hybrid MPI+MPI+C++11](#hybrid-mpimpic11)
+  - [Lock-free MPI porting](#lock-free-mpi-porting)
+- [Literature Review](#literature-review)
+  - [Known Problems](#known-problems)
+  - [Trends](#trends)
+- [Evaluation Strategy](#evaluation-strategy)
+  - [Correctness](#correctness)
+  - [Lock-freedom](#lock-freedom)
+  - [Performance](#performance)
+  - [Scalability](#scalability)
+
+### Publications
+
+- [dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue](https://www.researchgate.net/publication/395381301_dLTQueue_A_Non-Blocking_Distributed-Memory_Multi-Producer_Single-Consumer_Queue)
+- [Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations](https://www.researchgate.net/publication/395448251_Slotqueue_A_Wait-Free_Distributed_Multi-Producer_Single-Consumer_Queue_with_Constant_Remote_Operations)
+
 ### Objective
 
-- Examination of the *shared-memory* literature to find potential *lock-free*, *concurrent*, *multiple-producer single-consumer* queue algorithms.
-- Use the new MPI-3 RMA capabilities to port potential lock-free *shared-memory* queue algorithms to distributed context.
-- Potentially optimize MPI RMA ports using MPI-3 SHM + C++11 memory model. 
+- Survey shared-memory literature for lock-free, concurrent MPSC queue algorithms.
+- Port candidate algorithms to distributed contexts using MPI-3 RMA.
+- Optimize ports using MPI-3 SHM and the C++11 memory model.
 
-- Minimum required characteristics:
+Target characteristics:
 
-| Dimension           | Desired property        |
+| Dimension           | Requirement             |
 | ------------------- | ----------------------- |
-| Queue length        | Fixed length            |
-| Number of producers | Many                    |
-| Number of consumers | One                     |
-| Operations          | `queue`, `enqueue`      |
-| Concurrency         | Concurrent & Lock-free  |
+| Queue length        | Fixed                   |
+| Number of producers | Multiple                |
+| Number of consumers | Single                  |
+| Operations          | `enqueue`, `dequeue`    |
+| Concurrency         | Lock-free               |
 
 ### Motivation
 
-- Queue is the backbone data structures in many applications: scheduling, event handling, message bufferring. In these applications, the queue may be highly contended, for example, in event handling, there can be multiple sources of events & many consumers of events at the same time. If the queue has not been designed properly, it can become a bottleneck in a highly concurrent environment, adversely affecting the application's scalability. This sentiment also applies to queues in distributed contexts.
-- Within the context of shared-memory, there have been plenty of research and testing going into efficient, scalable & lock-free queue algorithms. This presents an opportunity to port these high-quality algorithms to the distributed context, albeit some inherent differences that need to be taken into consideration between the two contexts.
-- In the distributed literature, most of the proposed algorithms completely disregard the existing shared-memory algorithms, mostly due to the discrepancy between the programming model of shared memory and that of distributed computing. However, with MPI-3 RMA, the gap is bridged, and we can straightforwardly model shared memory application using MPI. This is why we investigate the porting approach & compare them with existing distributed queue algorithms.
+Queues are fundamental to scheduling, event handling, and message buffering. Under high contention—such as multiple event sources writing simultaneously—a poorly designed queue becomes a scalability bottleneck. This holds for both shared-memory and distributed systems.
+
+Shared-memory research has produced efficient, scalable, lock-free queue algorithms. Distributed computing literature largely ignores these algorithms due to differing programming models. MPI-3 RMA bridges this gap by enabling one-sided communication that closely mirrors shared-memory semantics. This project investigates whether porting shared-memory algorithms via MPI-3 RMA yields competitive distributed queues.
 
 ### Approach
 
-The porting approach we choose is to use MPI-3 RMA to port lock-free queue algorithms. We further optimize these ports using MPI SHM (or the so called MPI+MPI hybrid approach) and C++11 for shared memory synchronization.
+We port lock-free queue algorithms using MPI-3 RMA, then optimize with MPI SHM (hybrid MPI+MPI) and C++11 atomics for intra-node communication.
 
-<details>
-  <summary>Why MPI RMA?</summary>
-  
-  MPSC queue belongs to the class of <i>irregular</i> applications, this means that:
-  <ul>
-    <li>Memory access pattern is not known.</li>
-    <li>Data locations cannot be known in advance, it can change during execution.</li>
-  </ul>
-  
-  In other words, we cannot statically analyze where the data may be stored - data can be stored anywhere and we can only determine its location at runtime. This means the tradition message passing interface using <code>MPI_Send</code> and <code>MPI_Recv</code> is insufficient: Suppose at runtime, process <code>A</code> wants and knows to access a piece of data at <code>B</code>, then <code>A</code> must issue <code>MPI_Recv(B)</code>, but this requires <code>B</code> to anticipate that it should issue <code>MPI_Send(A, data)</code> and know that which data <code>A</code> actually wants. The latter issue can be worked around by having <code>A</code> issue <code>MPI_Send(B, data_descriptor)</code> first. Then, <code>B</code> must have waited for <code>MPI_Recv(A)</code>. However, because the memory access pattern is not known, <code>B</code> must anticipate that any other processes may want to access its data. It is possible but cumbersome.
-   
-   MPI RMA is specifically designed to conveniently express irregular applications by having one side specify all it wants.
+#### Why MPI RMA?
 
-</details>
+MPSC queues are *irregular* applications:
 
-<details>
-  <summary>Why MPI-3 RMA?</summary>
+- Memory access patterns are dynamic.
+- Data locations are determined at runtime.
 
-  MPI-3 improves the RMA API, providing the non-collective <code>MPI_Win_lock_all</code> for a process to open an access epoch on a group of processes. This allows for lock-free synchronization.
-</details>
+Traditional two-sided communication (`MPI_Send`/`MPI_Recv`) requires the receiver to anticipate requests—impractical when access patterns are unknown. MPI RMA allows one-sided communication where the initiator specifies all parameters.
 
-<details>
-  <summary>Hybrid MPI+MPI</summary>
-  The Pure MPI approach is oblivious to the fact that some MPI processes are on the same node, which causes some unnecessary overhead. MPI-3 introduces the MPI SHM API, allowing us to obtain a communicator containing processes on a single node. From this communicator, we can allocate a shared memory window using <code>MPI_Win_allocate_shared</code>. Hybrid MPI+MPI means that MPI is used for both intra-node and inter-node communication. This shared memory window follows the <em>unified memory model</em> and can be synchronized both using MPI facilities or any other alternatives. Hybrid MPI+MPI can take advantage of the many cores of current computer processors.
-</details>
+#### Why MPI-3 RMA?
 
-<details>
-  <summary>Hybrid MPI+MPI+C++11</summary>
-  Within the shared memory window, C++11 synchronization facilities can be used and prove to be much more efficient than MPI. So incorporating C++11 can be thought of as an optimization step for intra-node communication.
-</details>
+MPI-3 introduces `MPI_Win_lock_all`, a non-collective operation for opening access epochs on process groups, enabling lock-free synchronization.
 
-<details>
-  <summary>How to perform an MPI port in a lock-free manner?</summary>
-  
-  With MPI-3 RMA capabilities:
-  <ul>
-    <li>Use <code>MPI_Win_lock_all</code> and <code>MPI_Win_unlock_all</code> to open and end access epochs.</li>
-    <li>Within an access epoch, MPI atomics are used.</li>
-  </ul>
-</details>
+#### Hybrid MPI+MPI
 
-### Literature review
+Pure MPI ignores intra-node locality. MPI-3 SHM provides `MPI_Win_allocate_shared` for allocating shared memory windows among co-located processes. These windows use the unified memory model and can leverage both MPI and native synchronization. This exploits multi-core parallelism within nodes.
 
-#### Known problems
-- ABA problem.
+#### Hybrid MPI+MPI+C++11
 
-  Possible solutions: Monotonic counter, hazard pointer.
+C++11 atomics outperform MPI synchronization for intra-node communication. Using C++11 within shared memory windows optimizes the intra-node path.
 
-- Safe memory reclamation problem.
+#### Lock-free MPI porting
 
-  Possible solutions: Hazard pointer.
+MPI-3 RMA enables lock-free implementations:
 
-- Special case: empty queue - Concurrent `enqueue` and `dequeue` can conflict with each other.
+- `MPI_Win_lock_all` / `MPI_Win_unlock_all` manage access epochs.
+- MPI atomic operations (`MPI_Fetch_and_op`, `MPI_Compare_and_swap`) provide synchronization.
 
-  Possible solutions: Dummy node to decouple head and tail.
+### Literature Review
 
-- A slow process performing `enqueue` and `dequeue` could leave the queue in an intermediate state.
+#### Known Problems
 
-  Possible solutions:
-  - Help mechanism: To be lock-free, the other processes can help out patching up the queue (do not wait).
+* **ABA problem**
 
-- A dead process performing `enqueue` and `dequeue` could leave the queue broken.
-  
-  Possible solutions:
-  - Help mechanism: The other processes can help out patching up the queue.
+A pointer is reused after deallocation, causing a CAS to incorrectly succeed.
 
-- Motivation for the help mechanism?
+Solutions: Monotonic counters, hazard pointers.
 
-  Why: If `enqueue` or `dequeue` needs to perform some updates on the queue to move it to a consistent state, then a suspended process may leave the queue in an intermediate state. The `enqueue` and `dequeue` should not wait until it sees a consistent state or else the algorithm is blocking. Rather, they should help the suspended process complete the operation.
+* **Safe memory reclamation**
 
-  Solutions often involve (1) detecting intermediate state (2) trying to patch.
+Premature deallocation while other threads hold references.
 
-  Possible solutions:
-  - Typically, updates are performed using CAS. If CAS fails, some state changes have occurred, we can detect if this is intermediary & try to perform another CAS to patch up the queue.
-    Note that the patching CAS may fail in case the queue is just patched up, so looping until a successful CAS may not be necessary.
+Solutions: Hazard pointers, epoch-based reclamation.
+
+* **Empty queue contention**
+
+Concurrent `enqueue` and `dequeue` on an empty queue can conflict.
+
+Solutions: Sentinel node to separate head and tail pointers.
+
+* **Intermediate state from slow processes**
+
+A delayed process may leave the queue in an inconsistent state mid-operation.
+
+Solutions: Helping—other processes complete the pending operation.
+
+* **Intermediate state from failed processes**
+
+A crashed process may leave the queue permanently inconsistent.
+
+Solutions: Helping mechanisms that can complete any pending operation.
+
+* **Help mechanism rationale**
+
+Multi-step operations can leave the queue in intermediate states. Rather than blocking until consistency is restored, processes detect and complete pending operations. Implementation:
+
+1. Detect intermediate state
+2. Attempt completion via CAS
+
+A failed CAS indicates another process already helped; retry is unnecessary.
 
 #### Trends
 
-- Speed up happy paths.
-  - The happy path can use lock-free algorithm and fall back to the wait-free algorithm. As lock-free algorithms are typically more efficient, this can lead to speedups.
-  - Replacing CAS with simpler operations like FAA, load/store in the fast path.
-- Avoid contention: Enqueuers or dequeuers performing on a shared data structures can harm each other's progress.
-  - Local buffers can be used at the enqueuers' side in MPSC queue so that enqueuers do not contend with each other.
-  - Elimination + Backing off techniques in MPMC.
-- Cache-aware solutions.
+- Fast-path optimization
+  - Lock-free fast path with wait-free fallback
+  - Replace CAS with FAA or load/store where possible
+- Contention reduction
+  - Per-producer local buffers
+  - Elimination and backoff (for MPMC)
+- Cache-aware design
 
-### Evaluation strategy
+### Evaluation Strategy
 
-We need to evaluate at least 3 levels:
-- Theory verification: Prove that the algorithm possesses the desired properties.
-- Implementation verification: Even though theory is correct, implementation details nuances can affect the desired properties.
-  - Static verification: *Verify* the source code + its dependencies.
-  - Dynamic verification: *Verify* its behavior at runtime & *Benchmark*.
+We focus on the following criteria, in the order of decreasing importance:
+* Correctness
+* Lock-freedom
+* Performance & Scalability
 
 #### Correctness
-- Linearizability
-- No problematic ABA problem
-- Memory safety:
-  - Safe memory reclamation
 
-#### Performance
-- Performance: The less time it takes to serve common workloads on the target platform the better.
+- Linearizability
+- ABA-freedom
+- Safe memory reclamation
 
 #### Lock-freedom
-- Lock-freedom: A process suspended while using the queue should not prevent other processes from making progress using the queue.
 
-<details>
-  <summary>Caution - Lock-freedom of dependencies</summary>
-  A lock-free algorithm often <em>assumes</em> that some synchronization primitive is lock-free. This depends on the target platform and during implementation, the library used. Care must be taken to avoid accidental non-lock-free operation usage.
-</details>
+No process may block system-wide progress. Note: lock-freedom depends on underlying primitives being lock-free on the target platform.
+
+#### Performance
+
+Minimize latency and maximize throughput for target workloads.
 
 #### Scalability
-- Scalability: The performance gain for `queue` and `enqueue` should scale with the number of threads on the target platform.
+
+Throughput should scale with process count.
 
 
 ---
 
 <div align="center">
   <p>
-    <small>Last build: Mon Oct 27 03:06:37 UTC 2025</small><br>
+    <small>Last build: Sat Jan 10 11:50:28 UTC 2026</small><br>
     <small>Generated by GitHub Actions • <a href="https://github.com/H-DNA/MPiSC/tree/main">View Source</a></small>
   </p>
 </div>
