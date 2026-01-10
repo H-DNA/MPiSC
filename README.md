@@ -14,13 +14,13 @@ This project ports lock-free Multiple-Producer Single-Consumer (MPSC) queue algo
   - [Why MPI-3 RMA?](#why-mpi-3-rma)
   - [Hybrid MPI+MPI](#hybrid-mpimpi)
   - [Hybrid MPI+MPI+C++11](#hybrid-mpimpic11)
-  - [Lock-free MPI porting](#lock-free-mpi-porting)
+  - [Lock-Free MPI Porting](#lock-free-mpi-porting)
 - [Literature Review](#literature-review)
   - [Known Problems](#known-problems)
   - [Trends](#trends)
 - [Evaluation Strategy](#evaluation-strategy)
   - [Correctness](#correctness)
-  - [Lock-freedom](#lock-freedom)
+  - [Lock-Freedom](#lock-freedom)
   - [Performance](#performance)
   - [Scalability](#scalability)
 
@@ -76,7 +76,7 @@ Pure MPI ignores intra-node locality. MPI-3 SHM provides `MPI_Win_allocate_share
 
 C++11 atomics outperform MPI synchronization for intra-node communication. Using C++11 within shared memory windows optimizes the intra-node path.
 
-### Lock-free MPI porting
+### Lock-Free MPI Porting
 
 MPI-3 RMA enables lock-free implementations:
 
@@ -149,7 +149,7 @@ We focus on the following criteria, in the order of decreasing importance:
 - ABA-freedom
 - Safe memory reclamation
 
-### Lock-freedom
+### Lock-Freedom
 
 No process may block system-wide progress. Note: lock-freedom depends on underlying primitives being lock-free on the target platform.
 

@@ -1,8 +1,8 @@
-# LTQueue (Prasad Jayanti, Srdjan Petrovic, 2005) - MPI port
+# LTQueue (Prasad Jayanti, Srdjan Petrovic, 2005) - MPI Port
 
 Link: [paper](/references/LTQueue/README.md)
 
-## Naive port 
+## Naive Port 
 
 ### Replacing LL/SC
 
@@ -67,7 +67,7 @@ As LL/SC is not supported by MPI, we'll have to replace them using some other su
 
   We'll investigate first scheme for the time being, which means find a way to avoid ABA problem.
   
-#### Avoiding ABA problem
+#### Avoiding ABA Problem
 
 The simplest approach is to use a monotonic version tag: Reserve some bits in the shared variable to use as a monotonic counter, so the shared variable now consists of two parts:
 * Control bits: The bits that comprise the meaningful value of the shared variable.
@@ -109,7 +109,7 @@ There is a nuance though. In the original version, the `timestamp` at each inter
 Cons:
   - Each time we read the internal node, we have to dereference the rank at the node to access the timestamp. This doubles network activities when accessing the internal node. 
 
-### Pseudo code after removing LL/SC
+### Pseudo Code After Removing LL/SC
 
 SPSC is kept intact, and due to Prasad Jayanti and Srdjan Petrovic:
 
@@ -247,7 +247,7 @@ function refresh(mpsc_t* q, tree_node_t* node)
   return CAS(&current_node->min_timestamp_rank, current_rank, (min_timestamp_rank, current_rank.version + 1))
 ```
 
-### Linearizability, Wait-freedom, Memory-safety
+### Linearizability, Wait-Freedom, Memory-Safety
 
 ### Porting
 

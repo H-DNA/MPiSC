@@ -1,4 +1,4 @@
-# Slot-queue - A tailor-made optimized and simplified LTQueue for distributed context
+# Slot-Queue - A Tailor-Made Optimized and Simplified LTQueue for Distributed Context
 
 This algorithm is inspired by both [Jiffy (Dolev Adas, Roy Friedman, 2022](/references/Jiffy/README.md) and [LTQueue (Prasad Jayanti, Srdjan Petrovic, 2005)](/references/LTQueue/README.md):
   - The shared timestamp and double refresh trick is inspired by LTQueue to help Slot-queue wait-free.

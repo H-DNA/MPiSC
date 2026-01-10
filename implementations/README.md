@@ -6,7 +6,7 @@ Porting challenges & strategies are discussed further in these algorithms' folde
 
 Some have accompanying sections in the typst report to prove their correctness when modification to the original algorithms is necessary.
 
-## Ported algorithms
+## Ported Algorithms
 
 - [`LTQueue` (Prasad Jayanti & Srdjan Petrovic)](/references/LTQueue/README.md): [implementation](/implementations/ltqueue)
 
