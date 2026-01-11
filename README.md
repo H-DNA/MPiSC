@@ -38,7 +38,7 @@ Target characteristics:
 | Number of producers | Multiple                |
 | Number of consumers | Single                  |
 | Operations          | `enqueue`, `dequeue`    |
-| Concurrency         | Lock-free               |
+| Progress guarantee         | Lock-free               |
 
 ## Motivation
 
