@@ -6,7 +6,6 @@ This project ports lock-free Multiple-Producer Single-Consumer (MPSC) queue algo
 
 ## Table of Contents
 
-- [Publications](#publications)
 - [Objective](#objective)
 - [Motivation](#motivation)
 - [Approach](#approach)
@@ -23,11 +22,7 @@ This project ports lock-free Multiple-Producer Single-Consumer (MPSC) queue algo
   - [Lock-Freedom](#lock-freedom)
   - [Performance](#performance)
   - [Scalability](#scalability)
-
-## Publications
-
-- [dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue](https://www.researchgate.net/publication/395381301_dLTQueue_A_Non-Blocking_Distributed-Memory_Multi-Producer_Single-Consumer_Queue)
-- [Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations](https://www.researchgate.net/publication/395448251_Slotqueue_A_Wait-Free_Distributed_Multi-Producer_Single-Consumer_Queue_with_Constant_Remote_Operations)
+- [Related](#related)
 
 ## Objective
 
@@ -160,3 +155,8 @@ Minimize latency and maximize throughput for target workloads.
 ### Scalability
 
 Throughput should scale with process count.
+
+## Related
+
+- [dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue](https://www.researchgate.net/publication/395381301_dLTQueue_A_Non-Blocking_Distributed-Memory_Multi-Producer_Single-Consumer_Queue)
+- [Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations](https://www.researchgate.net/publication/395448251_Slotqueue_A_Wait-Free_Distributed_Multi-Producer_Single-Consumer_Queue_with_Constant_Remote_Operations)
