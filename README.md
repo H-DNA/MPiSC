@@ -35,171 +35,98 @@
 
 ![MPiSC](https://img.shields.io/badge/MPiSC-blue?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyTDIgN2wxMCA1IDEwLTV6TTIgMTdsMTAgNSAxMC01TTIgMTJsMTAgNSAxMC01Ii8+PC9zdmc+) ![Status](https://img.shields.io/badge/status-complete-brightgreen) [![Thesis](https://img.shields.io/badge/thesis-h--dna.github.io-informational)](https://h-dna.github.io/MPiSC/)
 
-This project ports lock-free Multiple-Producer Single-Consumer (MPSC) queue algorithms from shared-memory to distributed systems using MPI-3 Remote Memory Access (RMA).
-
 ### Table of Contents
 
-- [Objective](#objective)
-- [Motivation](#motivation)
-- [Approach](#approach)
-  - [Why MPI RMA?](#why-mpi-rma)
-  - [Why MPI-3 RMA?](#why-mpi-3-rma)
-  - [Hybrid MPI+MPI](#hybrid-mpimpi)
-  - [Hybrid MPI+MPI+C++11](#hybrid-mpimpic11)
-  - [Lock-Free MPI Porting](#lock-free-mpi-porting)
-- [Literature Review](#literature-review)
-  - [Known Problems](#known-problems)
-  - [Trends](#trends)
-- [Evaluation Strategy](#evaluation-strategy)
-  - [Correctness](#correctness)
-  - [Lock-Freedom](#lock-freedom)
-  - [Performance](#performance)
-  - [Scalability](#scalability)
+- [Abstract](#abstract)
+- [Motivation and Methodology](#motivation-and-methodology)
+- [Contributions](#contributions)
+- [Results](#results)
 - [Related](#related)
 
-### Objective
+### Abstract
 
-- Survey shared-memory literature for lock-free, concurrent MPSC queue algorithms.
-- Port candidate algorithms to distributed contexts using MPI-3 RMA.
-- Optimize ports using MPI-3 SHM and the C++11 memory model.
+Distributed applications such as the actor model and fan-out/fan-in pattern require MPSC queues that are both performant and fault-tolerant. We address the absence of non-blocking distributed MPSC queues by adapting LTQueue — a wait-free shared-memory MPSC queue — to distributed environments using MPI-3 RMA. We introduce three novel **wait-free** distributed MPSC queues: **dLTQueue**, **Slotqueue**, and **dLTQueueV2**. Evaluation on SuperMUC-NG and CoolMUC-4 shows ~2x better enqueue throughput than the existing AMQueue while providing stronger fault tolerance.
 
-Target characteristics:
+### Motivation and Methodology
 
-| Dimension           | Requirement             |
-| ------------------- | ----------------------- |
-| Queue length        | Fixed                   |
-| Number of producers | Multiple                |
-| Number of consumers | Single                  |
-| Operations          | `enqueue`, `dequeue`    |
-| Progress guarantee         | Lock-free               |
+#### The Problem
 
-### Motivation
+MPSC queues are essential for **irregular applications** — programs with unpredictable, data-dependent memory access patterns:
 
-Queues are fundamental to scheduling, event handling, and message buffering. Under high contention—such as multiple event sources writing simultaneously—a poorly designed queue becomes a scalability bottleneck. This holds for both shared-memory and distributed systems.
+- **Actor model**: Each actor maintains a mailbox (MPSC queue) receiving messages from other actors
+- **Fan-out/fan-in**: Worker nodes enqueue results to an aggregation node for processing
 
-Shared-memory research has produced efficient, scalable, lock-free queue algorithms. Distributed computing literature largely ignores these algorithms due to differing programming models. MPI-3 RMA bridges this gap by enabling one-sided communication that closely mirrors shared-memory semantics. This project investigates whether porting shared-memory algorithms via MPI-3 RMA yields competitive distributed queues.
+These patterns demand queues that are both performant and fault-tolerant. A slow or crashed producer should not block the entire system.
 
-### Approach
+#### Gap in the Literature
 
-We port lock-free queue algorithms using MPI-3 RMA, then optimize with MPI SHM (hybrid MPI+MPI) and C++11 atomics for intra-node communication.
+**Shared-memory** has several non-blocking MPSC queues: LTQueue, DQueue, WRLQueue, and Jiffy. However, our analysis reveals critical flaws in most:
 
-#### Why MPI RMA?
+| Queue | Issue |
+|-------|-------|
+| DQueue | Incorrect ABA solution and unsafe memory reclamation |
+| WRLQueue | Actually **blocking** — dequeuer waits for all enqueuers |
+| Jiffy | Insufficient memory reclamation, not truly wait-free |
+| **LTQueue** | **Correct** — uses LL/SC for ABA, proper memory reclamation |
 
-MPSC queues are *irregular* applications:
+**Distributed** has only one MPSC queue: **AMQueue**. Despite claiming lock-freedom, it is actually **blocking** — the dequeuer must wait for all enqueuers to finish. A single slow enqueuer halts the entire system. ([Confirmed by the original author](assets/amqueue-blocking-evidence.png))
 
-- Memory access patterns are dynamic.
-- Data locations are determined at runtime.
+#### Our Approach
 
-Traditional two-sided communication (`MPI_Send`/`MPI_Recv`) requires the receiver to anticipate requests—impractical when access patterns are unknown. MPI RMA allows one-sided communication where the initiator specifies all parameters.
+We adapt **LTQueue** — the only correct shared-memory MPSC queue — to distributed environments using MPI-3 RMA one-sided communication.
 
-#### Why MPI-3 RMA?
+**Key challenge**: LTQueue relies on LL/SC (Load-Link/Store-Conditional) to solve the ABA problem, but LL/SC is unavailable in MPI.
 
-MPI-3 introduces `MPI_Win_lock_all`, a non-collective operation for opening access epochs on process groups, enabling lock-free synchronization.
+**Our solution**: Replace LL/SC with CAS + unique timestamps. Each value is tagged with a monotonically increasing version number, preventing ABA without LL/SC.
 
-#### Hybrid MPI+MPI
+**Key techniques**:
+- **SPSC-per-enqueuer**: Each producer maintains a local queue, eliminating producer contention
+- **Unique timestamps**: Solves ABA via monotonic version numbers
+- **Double-refresh**: Bounds retries to two per node, ensuring wait-freedom
 
-Pure MPI ignores intra-node locality. MPI-3 SHM provides `MPI_Win_allocate_shared` for allocating shared memory windows among co-located processes. These windows use the unified memory model and can leverage both MPI and native synchronization. This exploits multi-core parallelism within nodes.
+### Contributions
 
-#### Hybrid MPI+MPI+C++11
+#### Findings
 
-C++11 atomics outperform MPI synchronization for intra-node communication. Using C++11 within shared memory windows optimizes the intra-node path.
+- **3 of 4** shared-memory MPSC queues (DQueue, WRLQueue, Jiffy) have correctness or progress issues
+- **AMQueue**, the only distributed MPSC queue, is blocking despite claims of lock-freedom
+- **LTQueue** is the only correct candidate for distributed adaptation
 
-#### Lock-Free MPI Porting
+#### Novel Algorithms
 
-MPI-3 RMA enables lock-free implementations:
+| Algorithm | Progress | Enqueue | Dequeue |
+|-----------|----------|---------|---------|
+| **dLTQueue** | Wait-free | O(log n) remote | O(log n) remote |
+| **Slotqueue** | Wait-free | O(1) remote | O(1) remote, O(n) local |
+| **dLTQueueV2** | Wait-free | O(1) remote | O(1) remote, O(log n) local |
 
-- `MPI_Win_lock_all` / `MPI_Win_unlock_all` manage access epochs.
-- MPI atomic operations (`MPI_Fetch_and_op`, `MPI_Compare_and_swap`) provide synchronization.
+All algorithms are **linearizable** with no dynamic memory allocation.
 
-### Literature Review
+### Results
 
-#### Known Problems
+Benchmarked on [SuperMUC-NG](https://doku.lrz.de/supermuc-ng-10745965.html) (6000+ nodes) and [CoolMUC-4](https://doku.lrz.de/coolmuc-4-10746415.html) (100+ nodes):
 
-* **ABA problem**
+| Metric | Our Queues vs AMQueue |
+|--------|----------------------|
+| Enqueue throughput | **~2x better** |
+| Dequeue throughput | 3-10x worse |
+| Fault tolerance | **Wait-free** (vs blocking) |
 
-A pointer is reused after deallocation, causing a CAS to incorrectly succeed.
-
-Solutions: Monotonic counters, hazard pointers.
-
-* **Safe memory reclamation**
-
-Premature deallocation while other threads hold references.
-
-Solutions: Hazard pointers, epoch-based reclamation.
-
-* **Empty queue contention**
-
-Concurrent `enqueue` and `dequeue` on an empty queue can conflict.
-
-Solutions: Sentinel node to separate head and tail pointers.
-
-* **Intermediate state from slow processes**
-
-A delayed process may leave the queue in an inconsistent state mid-operation.
-
-Solutions: Helping—other processes complete the pending operation.
-
-* **Intermediate state from failed processes**
-
-A crashed process may leave the queue permanently inconsistent.
-
-Solutions: Helping mechanisms that can complete any pending operation.
-
-* **Help mechanism rationale**
-
-Multi-step operations can leave the queue in intermediate states. Rather than blocking until consistency is restored, processes detect and complete pending operations. Implementation:
-
-1. Detect intermediate state
-2. Attempt completion via CAS
-
-A failed CAS indicates another process already helped; retry is unnecessary.
-
-#### Trends
-
-- Fast-path optimization
-  - Lock-free fast path with wait-free fallback
-  - Replace CAS with FAA or load/store where possible
-- Contention reduction
-  - Per-producer local buffers
-  - Elimination and backoff (for MPMC)
-- Cache-aware design
-
-### Evaluation Strategy
-
-We focus on the following criteria, in the order of decreasing importance:
-* Correctness
-* Lock-freedom
-* Performance & Scalability
-
-#### Correctness
-
-- Linearizability
-- ABA-freedom
-- Safe memory reclamation
-
-#### Lock-Freedom
-
-No process may block system-wide progress. Note: lock-freedom depends on underlying primitives being lock-free on the target platform.
-
-#### Performance
-
-Minimize latency and maximize throughput for target workloads.
-
-#### Scalability
-
-Throughput should scale with process count.
+**Trade-off**: Stronger fault tolerance at the cost of dequeue performance.
 
 ### Related
 
-- [dLTQueue: A Non-Blocking Distributed-Memory Multi-Producer Single-Consumer Queue](https://www.researchgate.net/publication/395381301_dLTQueue_A_Non-Blocking_Distributed-Memory_Multi-Producer_Single-Consumer_Queue)
-- [Slotqueue: A Wait-Free Distributed Multi-Producer Single-Consumer Queue with Constant Remote Operations](https://www.researchgate.net/publication/395448251_Slotqueue_A_Wait-Free_Distributed_Multi-Producer_Single-Consumer_Queue_with_Constant_Remote_Operations)
+1. **dLTQueue** - FDSE 2025 ([ResearchGate](https://www.researchgate.net/publication/395381301_dLTQueue_A_Non-Blocking_Distributed-Memory_Multi-Producer_Single-Consumer_Queue))
+2. **Slotqueue** - NPC 2025 ([ResearchGate](https://www.researchgate.net/publication/395448251_Slotqueue_A_Wait-Free_Distributed_Multi-Producer_Single-Consumer_Queue_with_Constant_Remote_Operations))
+
+[Full thesis](https://h-dna.github.io/MPiSC/)
 
 
 ---
 
 <div align="center">
   <p>
-    <small>Last build: Sun Jan 11 03:21:14 UTC 2026</small><br>
+    <small>Last build: Sun Jan 11 17:10:09 UTC 2026</small><br>
     <small>Generated by GitHub Actions • <a href="https://github.com/H-DNA/MPiSC/tree/main">View Source</a></small>
   </p>
 </div>
