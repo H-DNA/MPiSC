@@ -42,8 +42,9 @@ jobs:
           CHANGED_FILES=$(git diff --name-only $PREVIOUS_COMMIT HEAD)
           TYPST_CHANGES=$(echo "$CHANGED_FILES" | grep -E '\.typ(st)?$' || true)
           README_CHANGES=$(echo "$CHANGED_FILES" | grep -E 'README\.md$' || true)
-          
-          if [ -n "$TYPST_CHANGES" ] || [ -n "$README_CHANGES" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          ASSETS_CHANGES=$(echo "$CHANGED_FILES" | grep -E 'assets/' || true)
+    
+          if [ -n "$TYPST_CHANGES" ] || [ -n "$README_CHANGES" ] || [ -n "$ASSETS_CHANGES" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "should_build=true" >> $GITHUB_OUTPUT
             echo "Changes detected in Typst files or README.md, proceeding with build"
           else
@@ -77,6 +78,11 @@ jobs:
         run: |
           echo "TYPST_DIRS=$(find . -name "main.typst" -o -name "main.typ" | xargs dirname | tr '\n' ' ')" >> $GITHUB_ENV
           mkdir -p build
+
+      - name: Copy assets
+        id: copy_assets
+        run: |
+          cp -r ./assets ./build
           
       - name: Build PDFs from Typst projects
         run: |
